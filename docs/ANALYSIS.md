@@ -14,11 +14,11 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
 ### Behavior & AI
 * **Tamability:** 
     * **Taming Item:** Black oil sunflower seeds (crafted from Sunflowers).
-    * **Healing/Satiation:** Uses `minecraft:parrot_food` tags.
+    * **Healing/Satiation:** Uses new item `crowbuddy:black_oil_sunflower_seeds` and `minecraft:parrot_food` tags.
     * **Poison:** `minecraft:parrot_poisonous_food` and `minecraft:cocoa_beans`.
 * **Item Retrieval (Scavenging):**
     * **Mechanic:** Crows grab dropped items and carry them in their mouths.
-    * **Drop Logic:** Items are dropped at the player's location if the crow enters combat or a distress event.
+    * **Drop Logic:** Items are dropped at the player's location as a trade if the player feeds them, or dropped at the crow's current location if the crow enters combat or a distress event.
     * **Priority (Weighted):** 
         1. `minecraft:beacon_payment_items`
         2. `minecraft:piglin_loved`
@@ -30,8 +30,8 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
 * **Swarm Intelligence (The "Distress" System):**
     * **Trigger (Untamed):** Attacking a crow triggers a 32-block radius distress event (max 8 crows).
     * **Trigger (Tamed/Hostile):** 
-        * *Single Hit:* Crow hits back once.
-        * *Repeated Hits (30s window):* Triggers full swarm.
+        * *Single Hit onto the tamed crow from player:* Crow hits back once on player.
+        * *Repeated Hits onto the tamed crow from player (30s window):* Triggers full swarm.
         * *Defending Player:* Tamed crow can trigger a swarm on a target (mob or player) the player attacks.
     * **Swarm Rules:**
         * Only the original source emits the distress event; others react but do not relay.
