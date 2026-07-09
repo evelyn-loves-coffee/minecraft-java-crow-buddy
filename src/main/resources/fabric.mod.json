@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "crowbuddy",
+	"version": "${version}",
+	"name": "Crow Buddy",
+	"description": "A vanilla-plus mod adding a tameable crow entity.",
+	"authors": [
+		"Crow Buddy Team"
+	],
+	"contact": {
+		"homepage": "https://github.com/anomalyco/opencode"
+	},
+	"license": "MIT",
+	"icon": "assets/crowbuddy/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.crowbuddy.CrowBuddy"
+		],
+		"client": [
+			"com.crowbuddy.client.CrowBuddyClient"
+		]
+	},
+	"mixins": [
+		"crowbuddy.mixins.json",
+		{
+			"config": "crowbuddy.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
