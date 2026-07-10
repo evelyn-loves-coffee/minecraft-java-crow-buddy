@@ -23,15 +23,19 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 ### Resolved Decisions
 *   **Mod ID:** `crowbuddy`
 *   **GeckoLib Version:** `5.5.3`
+*   **Registration Pattern:** Fabric `EventRegistry`
+*   **Item Retrieval:** Item in mouth state
+*   **Distress System:** Single emission, affects 8 crows within 32 blocks
+*   **Procedural Spawning:** Simple spawn table based on tags
 
 ### Assumptions & Verification
 | # | Assumption | Risk | Verification Needed |
 |---|-----------|------|---------------------|
 | 1 | GeckoLib artifact coordinate is `software.bernie.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}` | Medium | Verify artifact naming for 5.5.3 release |
-| 2 | `ModItems`/`ModEntities` registration pattern is correct for MC 26.2 | High | May have shifted to `Registry.registerForDataLoader` or Fabric `EventRegistry` |
+| 2 | `ModItems`/`ModEntities` registration pattern is correct for MC 26.2 | Low | Confirmed: Use Fabric `EventRegistry` |
 | 3 | GeckoLib should use `modApi` rather than `modImplementation` | Low | Decision based on whether other mods should access GeckoLib through this mod |
 | 4 | Loom mod name `"modid"` → `"crowbuddy"` change is necessary | Low | May be purely internal to Loom with no runtime effect |
-| 5 | DataGen uses `FabricDataPack` interface with custom `ModDataPack` class | Medium | Decompiled bytecode shows `createPack()` called with no argument — API may be simpler |
+| 5 | DataGen uses simplified `FabricDataPack` interface | Low | Confirmed: `createPack()` called with no argument |
 | 6 | Networking uses `ServerPlayNetworking` from Fabric API | Low | Channel registration pattern for MC 26.2 unconfirmed |
 
 ## 3. Roadmap to v1.0
@@ -52,12 +56,12 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 
 ### Phase 3: Networking & Core Mechanics
 *   Implement `ModNetworking` layer for client-server communication.
-*   Implement Scavenging logic (Item retrieval in mouth, weighted priorities, frequency).
-*   Implement Swarm Intelligence (Distress system: triggers, rules, sound management).
+*   Implement Scavenging logic (Item in mouth state).
+*   Implement Swarm Intelligence (Distress system: single emission, affects 8 crows in 32 blocks).
 *   Implement "Sit" behavior and its interaction with other behaviors.
 
 ### Phase 4: World & Environment
-*   Implement procedural spawning (temperature, humidity, forest density analysis).
+*   Implement procedural spawning (Simple spawn table based on tags).
 *   Implement Crow Nests as procedural Features with Block Tag compatibility.
 
 ### Phase 5: Polishing & Verification
@@ -67,12 +71,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   Final testing against PAWS standards.
 
 ## 4. Technical Unknowns & Open Questions
-*   **Item Retrieval:** Specific physics/logic for "grabbing" and "carrying" items in the mouth.
-*   **Swarm Logic:** Signaling mechanism (broadcast vs proximity) for the distress system.
-*   **Procedural Spawning:** Hooking into biome generation for nests.
 *   **Sound Management:** Screeching duration and cancellation logic.
 *   **Asset Specs:** Final visual design requirements.
-*   **Registration Pattern:** Confirming correct registry pattern for MC 26.2.
-*   **Mixin Utility:** Decision on keeping the empty `CrowBuddyMixin`.
 *   **DataGen Scope:** Whether to include actual providers or just scaffolding in initial pre-requisites.
 *   **Placeholder Assets:** Timing of creating lang files, item models, and dummy textures.
