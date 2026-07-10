@@ -36,7 +36,11 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
     *   *Providers:* `ItemProvider`, `EntityProvider`, `TagProvider`, `LootTableProvider`.
 *   **Procedural Spawning:** Simple spawn table based on tags
 *   **Sound Management:** 4-second timer on screech; stops immediately if crow dies or sits.
-*   **Visual Requirements:** Vanilla-like aesthetic; mix of pure black and dark grey.
+*   **Crow Nest Mechanics:** Craftable block. Only drops with Silk Touch.
+*   **Defense & Relationship Logic:**
+    *   *Untamed:* Immediate Distress/Swarm on player attack.
+    *   *Tamed:* 30s sliding window. Hit 1: Single attack. Hit 2+: Distress/Swarm.
+    *   *Interaction Override:* Owner right-click always forces "Sitting" state (even during Distress).
 
 ### Assumptions & Verification
 | # | Assumption | Risk | Verification Needed |
