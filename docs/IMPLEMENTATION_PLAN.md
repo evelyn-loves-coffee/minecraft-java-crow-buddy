@@ -5,9 +5,9 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 
 ### Implementation Strategy
 *   **Approach:** "From Scratch" to allow for custom flight physics, unique AI goals, and optimized performance.
-*   **NBT Tracking:**
+*   **Data Components:**
     *   `Crow_Satiation`: Tracks health/food levels to determine behavior frequency.
-    *   `Crow_Relationship`: Tracks player aggression.
+    *   `Crow_Relationship`: Tracks player aggression (via `crow_last_hit_timestamp`).
 *   **Technical Standards:**
     *   **PAWS:** Performance, Auditability, Workability, Scalability.
     *   **Entity Standards:** Adheres to "Tiny Takeover" (Minecraft 26.1+) overhaul patterns.
@@ -26,7 +26,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   **Build Config:** `geckolibVersion=5.5.3` in `gradle.properties`
 *   **Registration Pattern:** Fabric `EventRegistry`
 *   **Item Retrieval:** Item in mouth state
-*   **Distress System:** Single emission, affects 8 crows within 32 blocks. Packets include Initiator Entity ID and 4-second TTL.
+*   **Distress System:** Single emission, affects 8 crows within 32 blocks. Packets include Initiator Entity ID and 4-second TTL. Crow drops held item immediately upon entering swarm.
 *   **Scavenging System:** Server-side AI logic; Networking used to sync "Item in Mouth" and "Drop Off" states.
 *   **Networking Payloads:** 
     *   `DistressPacket`: `initiatorId` (int), `timestamp` (long).
@@ -39,7 +39,9 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   **Crow Nest Mechanics:** Craftable block. Only drops with Silk Touch.
 *   **Defense & Relationship Logic:**
     *   *Untamed:* Immediate Distress/Swarm on player attack.
-    *   *Tamed:* 30s sliding window. Hit 1: Single attack. Hit 2+: Distress/Swarm.
+    *   *Tamed:* 30s sliding window using persistent `crow_last_hit_timestamp` Data Component.
+        *   Logic: On `onHit`, if `(currentTime - last_hit_timestamp) < 30,000ms`, trigger Distress/Swarm.
+        *   Sanity Check: Reset `last_hit_timestamp` to 0 if > 1 hour old on spawn/load.
     *   *Interaction Override:* Owner right-click always forces "Sitting" state (even during Distress).
 
 ### Assumptions & Verification
