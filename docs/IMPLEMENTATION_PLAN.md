@@ -22,21 +22,32 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 
 ### Resolved Decisions
 *   **Mod ID:** `crowbuddy`
-*   **GeckoLib Version:** `5.5.3`
+*   **GeckoLib Version:** `5.5.3` (via `modApi`)
+*   **Build Config:** `geckolibVersion=5.5.3` in `gradle.properties`
 *   **Registration Pattern:** Fabric `EventRegistry`
 *   **Item Retrieval:** Item in mouth state
-*   **Distress System:** Single emission, affects 8 crows within 32 blocks
+*   **Distress System:** Single emission, affects 8 crows within 32 blocks. Packets include Initiator Entity ID and 4-second TTL.
+*   **Scavenging System:** Server-side AI logic; Networking used to sync "Item in Mouth" and "Drop Off" states.
+*   **Networking Payloads:** 
+    *   `DistressPacket`: `initiatorId` (int), `timestamp` (long).
+    *   `ScavengingSync`: `entityId` (int), `itemId` (int), `count` (int), `mouthPosition` (float[3]).
+    *   `DropOffPacket`: `entityId` (int), `itemId` (int), `count` (int), `dropLocation` (float[3]).
+*   **DataGen Strategy:** Phase 2: Scaffolding/Base classes. Phase 3/4: Content/Metadata providers.
+    *   *Providers:* `ItemProvider`, `EntityProvider`, `TagProvider`, `LootTableProvider`.
 *   **Procedural Spawning:** Simple spawn table based on tags
+*   **Sound Management:** 4-second timer on screech; stops immediately if crow dies or sits.
+*   **Visual Requirements:** Vanilla-like aesthetic; mix of pure black and dark grey.
 
 ### Assumptions & Verification
 | # | Assumption | Risk | Verification Needed |
 |---|-----------|------|---------------------|
-| 1 | GeckoLib artifact coordinate is `software.bernie.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}` | Medium | Verify artifact naming for 5.5.3 release |
+| 1 | GeckoLib artifact coordinate is `software.bernie.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}` | Low | Confirmed for 5.5.3 |
 | 2 | `ModItems`/`ModEntities` registration pattern is correct for MC 26.2 | Low | Confirmed: Use Fabric `EventRegistry` |
-| 3 | GeckoLib should use `modApi` rather than `modImplementation` | Low | Decision based on whether other mods should access GeckoLib through this mod |
+| 3 | GeckoLib should use `modApi` rather than `modImplementation` | Low | Confirmed: Use `modApi` |
 | 4 | Loom mod name `"modid"` → `"crowbuddy"` change is necessary | Low | May be purely internal to Loom with no runtime effect |
 | 5 | DataGen uses simplified `FabricDataPack` interface | Low | Confirmed: `createPack()` called with no argument |
-| 6 | Networking uses `ServerPlayNetworking` from Fabric API | Low | Channel registration pattern for MC 26.2 unconfirmed |
+| 6 | Networking uses `ServerPlayNetworking` from Fabric API | Low | Confirmed: Standard channel registration |
+
 
 ## 3. Roadmap to v1.0
 
@@ -51,13 +62,13 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   Implement centralized `ModClientEntities` (client) for renderers/animations.
 *   Implement centralized `ModItems` using Data Components.
 *   Wire registries into `CrowBuddy` and `CrowBuddyClient` entrypoints.
-*   Initialize Fabric DataGen pipeline.
-*   Implement DataGen providers for Items, Entities, and Tags.
+*   Initialize Fabric DataGen pipeline (Scaffolding).
+*   Implement DataGen providers for Items, Entities, and Tags (Base classes).
 
 ### Phase 3: Networking & Core Mechanics
-*   Implement `ModNetworking` layer for client-server communication.
-*   Implement Scavenging logic (Item in mouth state).
-*   Implement Swarm Intelligence (Distress system: single emission, affects 8 crows in 32 blocks).
+*   Implement `ModNetworking` layer for client-server communication (Payloads & Channels).
+*   Implement Scavenging logic (Item in mouth state, Server-side AI, State Sync).
+*   Implement Swarm Intelligence (Distress system: single emission, 8 crows, 32 blocks, Initiator ID + 4s TTL).
 *   Implement "Sit" behavior and its interaction with other behaviors.
 
 ### Phase 4: World & Environment
@@ -66,12 +77,11 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 
 ### Phase 5: Polishing & Verification
 *   Finalize assets (models, textures, sounds).
+    *   Required: `.geo.json` (Geometry), `.animation.json` (Animations), `.png` (Textures), `.ogg` (Audio).
 *   Conduct full build and typecheck.
 *   Verify registry logs and initialization.
 *   Final testing against PAWS standards.
 
 ## 4. Technical Unknowns & Open Questions
-*   **Sound Management:** Screeching duration and cancellation logic.
-*   **Asset Specs:** Final visual design requirements.
-*   **DataGen Scope:** Whether to include actual providers or just scaffolding in initial pre-requisites.
 *   **Placeholder Assets:** Timing of creating lang files, item models, and dummy textures.
+
