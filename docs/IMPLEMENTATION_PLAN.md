@@ -3,91 +3,42 @@
 ## 1. Project Overview
 The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft. It mirrors real-life crow presence through biome-specific spawning and shares behaviors with Parrots (flight, shoulder-sitting) while introducing unique crow-centric mechanics.
 
-### Implementation Strategy
-*   **Approach:** "From Scratch" to allow for custom flight physics, unique AI goals, and optimized performance.
-*   **Data Components:**
-    *   `Crow_Satiation`: Tracks health/food levels to determine behavior frequency.
-    *   `Crow_Relationship`: Tracks player aggression (via `crow_last_hit_timestamp`).
-*   **Technical Standards:**
-    *   **PAWS:** Performance, Auditability, Workability, Scalability.
-    *   **Entity Standards:** Adheres to "Tiny Takeover" (Minecraft 26.1+) overhaul patterns.
-
 ## 2. Technical Choices & Design Decisions
 | Feature | Choice | Rationale |
 | :--- | :--- | :--- |
 | **Animation** | GeckoLib | Supports complex, fluid, and highly detailed crow-like behaviors. |
 | **Data Storage** | Data Components | Leverages modern, optimized, and strongly-typed Minecraft 26.2+ architecture. |
-| **Dependencies** | Situational | Use libraries only when they provide high benefit/efficiency without unnecessary bloat. |
-| **Assets** | Placeholders | Initial development will use placeholder assets until final designs are available. |
-
-### Resolved Decisions
-*   **Mod ID:** `crowbuddy`
-*   **GeckoLib Version:** `5.5.3` (via `modApi`)
-*   **Build Config:** `geckolibVersion=5.5.3` in `gradle.properties`
-*   **Registration Pattern:** Fabric `EventRegistry`
-*   **Item Retrieval:** Item in mouth state
-*   **Distress System:** Single emission, affects 8 crows within 32 blocks. Packets include Initiator Entity ID and 4-second TTL. Crow drops held item immediately upon entering swarm.
-*   **Scavenging System:** Server-side AI logic; Networking used to sync "Item in Mouth" and "Drop Off" states.
-*   **Networking Payloads:** 
-    *   `DistressPacket`: `initiatorId` (int), `timestamp` (long).
-    *   `ScavengingSync`: `entityId` (int), `itemId` (int), `count` (int), `mouthPosition` (float[3]).
-    *   `DropOffPacket`: `entityId` (int), `itemId` (int), `count` (int), `dropLocation` (float[3]).
-*   **DataGen Strategy:** Phase 2: Scaffolding/Base classes. Phase 3/4: Content/Metadata providers.
-    *   *Providers:* `ItemProvider`, `EntityProvider`, `TagProvider`, `LootTableProvider`.
-*   **Procedural Spawning:** Simple spawn table based on tags
-*   **Sound Management:** 4-second timer on screech; stops immediately if crow dies or sits.
-*   **Crow Nest Mechanics:** Craftable block. Only drops with Silk Touch.
-*   **Defense & Relationship Logic:**
-    *   *Untamed:* Immediate Distress/Swarm on player attack.
-    *   *Tamed:* 30s sliding window using persistent `crow_last_hit_timestamp` Data Component.
-        *   Logic: On `onHit`, if `(currentTime - last_hit_timestamp) < 30,000ms`, trigger Distress/Swarm.
-        *   Sanity Check: Reset `last_hit_timestamp` to 0 if > 1 hour old on spawn/load.
-    *   *Interaction Override:* Owner right-click always forces "Sitting" state (even during Distress).
-
-### Assumptions & Verification
-| # | Assumption | Risk | Verification Needed |
-|---|-----------|------|---------------------|
-| 1 | GeckoLib artifact coordinate is `software.bernie.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}` | Low | Confirmed for 5.5.3 |
-| 2 | `ModItems`/`ModEntities` registration pattern is correct for MC 26.2 | Low | Confirmed: Use Fabric `EventRegistry` |
-| 3 | GeckoLib should use `modApi` rather than `modImplementation` | Low | Confirmed: Use `modApi` |
-| 4 | Loom mod name `"modid"` → `"crowbuddy"` change is necessary | Low | May be purely internal to Loom with no runtime effect |
-| 5 | DataGen uses simplified `FabricDataPack` interface | Low | Confirmed: `createPack()` called with no argument |
-| 6 | Networking uses `ServerPlayNetworking` from Fabric API | Low | Confirmed: Standard channel registration |
-
+| **Dependencies** | GeckoLib (via `modImplementation`) | Integrated as a prerequisite dependency. |
+| **Assets** | Minimal structure/Placeholder | Implement minimal structure (lang files, dummy textures) in Phase 1. |
+| **Registration** | Minecraft 26.2 Modern API | Align with "Tiny Takeover" standards and future-proof the mod. |
 
 ## 3. Roadmap to v1.0
 
-### Phase 1: Dependency & Environment Setup (Current Focus)
-*   Update `build.gradle` with GeckoLib dependencies.
+### Phase 1: Dependency & Environment Setup
+*   Update `build.gradle` with GeckoLib dependencies (`modImplementation`).
 *   Verify build with `./gradlew build`.
-*   Finalize mixin configurations (e.g., decide on `CrowBuddyMixin` utility).
-*   Create asset directory structure (`geo`, `animations`) with placeholder files.
+*   Finalize mixin configurations (e.g., `crowbuddy.client.mixins.json`).
+*   Create minimal asset directory structure (`geo`, `animations`) with placeholder files.
 
 ### Phase 2: Foundation - Registration & Data Generation
 *   Implement centralized `ModEntities` (common) with GeckoLib support.
 *   Implement centralized `ModClientEntities` (client) for renderers/animations.
 *   Implement centralized `ModItems` using Data Components.
-*   Wire registries into `CrowBuddy` and `CrowBuddyClient` entrypoints.
-*   Initialize Fabric DataGen pipeline (Scaffolding).
-*   Implement DataGen providers for Items, Entities, and Tags (Base classes).
+*   Initialize Fabric DataGen pipeline.
+*   Implement DataGen providers for Items, Entities, and Tags (full providers).
 
 ### Phase 3: Networking & Core Mechanics
-*   Implement `ModNetworking` layer for client-server communication (Payloads & Channels).
-*   Implement Scavenging logic (Item in mouth state, Server-side AI, State Sync).
-*   Implement Swarm Intelligence (Distress system: single emission, 8 crows, 32 blocks, Initiator ID + 4s TTL).
-*   Implement "Sit" behavior and its interaction with other behaviors.
+*   Implement `ModNetworking` layer for client-server communication.
+*   Implement Scavenging logic (Proximity-based acquisition, mouth state, server-side AI).
+*   Implement Swarm Intelligence (Distress system: single emission, 8 crows, 32-block radius via `distanceSquared`, `Entity ID` + `BlockPos` payloads).
+*   Implement "Sit" behavior and interaction logic.
 
 ### Phase 4: World & Environment
-*   Implement procedural spawning (Simple spawn table based on tags).
+*   Implement procedural spawning via `BiomeModifications`.
 *   Implement Crow Nests as procedural Features with Block Tag compatibility.
 
 ### Phase 5: Polishing & Verification
 *   Finalize assets (models, textures, sounds).
-    *   Required: `.geo.json` (Geometry), `.animation.json` (Animations), `.png` (Textures), `.ogg` (Audio).
 *   Conduct full build and typecheck.
 *   Verify registry logs and initialization.
 *   Final testing against PAWS standards.
-
-## 4. Technical Unknowns & Open Questions
-*   **Placeholder Assets:** Timing of creating lang files, item models, and dummy textures.
-
