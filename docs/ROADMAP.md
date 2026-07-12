@@ -32,6 +32,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   Implement Scavenging logic (Proximity-based acquisition, mouth state, server-side AI).
 *   Implement Swarm Intelligence (Distress system: single emission, 8 crows, 32-block radius via `distanceSquared`, `Entity ID` + `BlockPos` payloads).
 *   Implement "Sit" behavior and interaction logic.
+*   **Implement `CrowBuddyMixin` using the Dispatcher Pattern to trigger server-side swarm/event logic.**
 
 ### Phase 4: World & Environment
 *   Implement procedural spawning via `BiomeModifications`.
