@@ -1,0 +1,21 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "crow.idle": {
+      "loop": true,
+      "animation_location": "animation.crow.idle",
+      "override_previous_animation": true,
+      "anim_time_update": "query.anim_time",
+      "anonymous": {
+        "timeline": {
+          "0": {
+            "sequence": "idle",
+            "speed": 1
+          }
+        }
+      }
+    }
+  },
+  "animation_controllers": {},
+  "geometry": {}
+}

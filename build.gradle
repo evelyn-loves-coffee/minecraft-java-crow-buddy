@@ -25,7 +25,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"modid" {
+		"crowbuddy" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
@@ -37,8 +37,11 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	implementation "maven.modrinth:8BmcQJ2H:L6bn4TS8"
+	// Fabric API
+	implementation "maven.modrinth:P7dR8mSH:${project.fabric_api_version}"
+
+	// GeckoLib
+	implementation "maven.modrinth:8BmcQJ2H:${project.geckolib_version}"
 }
 
 processResources {
