@@ -8,17 +8,17 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | :--- | :--- | :--- |
 | **Animation** | GeckoLib | Supports complex, fluid, and highly detailed crow-like behaviors. |
 | **Data Storage** | Data Components | Leverages modern, optimized, and strongly-typed Minecraft 26.2+ architecture. |
-| **Dependencies** | GeckoLib (via `modImplementation`) | Integrated as a prerequisite dependency. |
+| **Dependencies** | GeckoLib (via `implementation`) | Integrated as a prerequisite dependency. |
 | **Assets** | Minimal structure/Placeholder | Implement minimal structure (lang files, dummy textures) in Phase 1. |
 | **Registration** | Minecraft 26.2 Modern API | Align with "Tiny Takeover" standards and future-proof the mod. |
 
 ## 3. Roadmap to v1.0
 
 ### Phase 1: Dependency & Environment Setup
-*   Update `build.gradle` with GeckoLib dependencies (`modImplementation`).
-*   Verify build with `./gradlew build`.
-*   Finalize mixin configurations (e.g., `crowbuddy.client.mixins.json`).
-*   Create minimal asset directory structure (`geo`, `animations`) with placeholder files.
+*   ~~Update `build.gradle` with GeckoLib dependencies (`modImplementation`).~~
+*   ~~Verify build with `./gradlew build`.~~
+*   ~~Finalize mixin configurations (e.g., `crowbuddy.client.mixins.json`).~~
+*   ~~Create minimal asset directory structure (`geo`, `animations`) with placeholder files.~~
 
 ### Phase 2: Foundation - Registration & Data Generation
 *   Implement centralized `ModEntities` (common) with GeckoLib support.
