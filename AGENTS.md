@@ -1,4 +1,6 @@
-## PAWS Standard (Code Review Standard)
+## Session Initialization
+At the start of any new session, perform `git fetch` to check if the local code is out of sync with the remote repository. If a desync is found, stop immediately and ask the user if they should rebase first.
+
 Apply the PAWS standard review automatically during analysis, design, or review phases, and whenever requested.
 The PAWS standard should be contextually applied for the scenario and technologies involved.
 The outcome should be a per-agent evaluation outlining risks, confidence levels, path to improvements, and adherence to the original intent.
