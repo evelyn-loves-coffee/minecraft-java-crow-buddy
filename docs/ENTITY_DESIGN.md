@@ -40,21 +40,25 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
         * *Mid Health:* Infrequent searching.
         * *Full Health:* Searching with a ~12-second cooldown.
 * **Swarm Intelligence (The "Distress" System):**
-    * **Trigger (Untamed):** Attacking a crow triggers a 32-block radius distress event (max 8 crows).
+    * **Trigger (Untamed):** Attacking a crow triggers a 32-block radius distress event (6 total: source + 5 nearest).
     * **Trigger (Tamed/Hostile):** 
-        * *Single Hit onto the tamed crow from player:* Crow hits back once on player.
-        * *Repeated Hits onto the tamed crow from player (30s window):* Triggers full swarm.
-        * *Defending Player:* Tamed crow can trigger a swarm on a target (mob or player) the player attacks.
+        * *Single Hit onto the tamed crow from player:* Full `TamableAnimal` retaliation (~2s engagement via `wantsToAttack()`/`canAttack()`).
+        * *3 Total Hits onto the tamed crow within 30s sliding window:* Escalates to full swarm.
+        * *Defending Player:* Tamed crow triggers swarm only when owner attacks a **hostile mob** (not players, not neutrals).
     * **Swarm Rules:**
-        * **Distance Check:** Uses `distanceSquared` for high-performance proximity checks during distress events.
-        * **Networking:** Custom `ServerPlayNetworking` packets to broadcast the `Entity ID` and `BlockPos` of the distress source.
-        * **Communication:** Only the original source emits the distress event; others react but do not relay.
-        * **Sound:** Screeching continues for the duration of the event.
-        * **Targeting (Hostile Mobs):** Attack indefinitely.
-        * **Targeting (Players):** Attack for a 4-second sliding window.
-        * **Control:** Players can command the crow to "sit" to cancel a distress event.
+        * **Distance Check:** Uses `distanceSquared ≤ 1024` (32 blocks) for proximity checks.
+        * **Cap:** 6 total (source always participates + up to 5 nearest responders, sorted by `distanceSquared`).
+        * **Networking:** `DistressPayload` (S→C) broadcasts entity ID + BlockPos + source ID via `ServerPlayNetworking`.
+        * **Single Emission:** Only the original source emits distress; responders do not relay.
+        * **Cooldown:** Per-crow 15-second (300-tick) participation cooldown prevents cascading spam.
+        * **Audio:** All 6 participating crows play distress sound with dual-layer variance (code: `pitch = rand(0.85–1.15)`, `volume = rand(0.9–1.1)`; JSON baseline: `"pitch": {"min": 0.85, "max": 1.15}`). Repeated every 20 ticks.
+        * **Targeting (Hostile Mobs):** Attack indefinitely until target dies.
+        * **Targeting (Players):** Attack for a 4-second sliding window (resets on each successful hit).
+        * **Cross-Dimension:** Swarm is restricted to the same dimension as the source.
+        * **Control:** "Sit" command (`isOrderedToSit()`) cancels all active swarm behavior immediately.
     * **Sitting:** "Sit" command suppresses all active behaviors, including search, flight, combat, and distress.
-    * **Distress Detection:** Triggered via `ServerLivingEntityEvents.AFTER_DAMAGE` (Fabric event API) — no custom mixin required.
+    * **Distress Detection:** Triggered via `ServerLivingEntityEvents.AFTER_DAMAGE` (Fabric event API) — fires before entity death, no custom mixin required.
+    * **Navigation:** Standard `PathNavigation` pathfinding for Phase 3. Ground-based; 3D flight + `FlyingPathNavigation` deferred to Phase 5.
 * **Shoulder-Perch Toggle (Resolved Decision D):**
     * **Toggle:** Right-click on tamed crow toggles `PERCHED` state (synced EntityData boolean).
     * **Perched:** All AI goals (`ScavengeGoal`, `SwarmDistressGoal`, etc.) disabled. Crow follows owner everywhere, rendered at shoulder position.
