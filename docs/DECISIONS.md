@@ -51,6 +51,16 @@ _All resolved._
 | 11 | **Distress Sound** | New sound event `crowbuddy:entity.crow.distress` with placeholder asset for Phase 3; final asset deferred to Phase 5. |
 | 12 | **Shoulder-Perch Toggle** | Tamed crows gain `PERCHED` EntityData state (boolean, synced). Right-click toggles perch. When perched: all goals disabled, crow follows owner via shoulder-position logic. When unperched: full AI autonomy (`ScavengeGoal`, `SwarmDistressGoal`, etc.). |
 
+## Deferred Items (Phase 3 Implementation)
+| # | Item | Current State | Resolution Target |
+|---|------|--------------|-------------------|
+| D1 | `CrowBuddyMixin` dead no-op | ✅ **Resolved** — Phase 3 | Deleted `CrowBuddyMixin.java` + emptied `crowbuddy.mixins.json` (`"required": false`, `"mixins": []`) |
+| D2 | Renderer perched pose | Shoulder-positioning deferred: GeckoLib `GeoEntityRenderer` has no clean entity access in `adjustRenderPose()` | Custom render layer or GeckoLib bone snap (Phase 5) |
+| D3 | `CrowEventHub` stubs | 4 methods logging DEBUG; delegation to `SwarmManager` not wired | Wire in subsection 6 |
+| D4 | `isFood()` hardcoded `false` | ✅ **Resolved** — Phase 3 implementation | Checks: `COCOA_BEANS` → false, `parrot_poisonous_food` tag → false, `BLACK_OIL_SUNFLOWER_SEEDS` → true, `parrot_food` tag → true |
+| D5 | Client payload handlers empty | `handleDistress()` / `handleScavenge()` have no visual/audio reaction | Visual/audio cues (Phase 5) |
+| D6 | `crow extends Animal` not `TamableCreature` | ✅ **Resolved** — Phase 3 | Migrated to `TamableAnimal` (MC 26.x equiv). Added: `isTame()`, `tame()`, `setOwner()`, `getOwnerReference()`, `getOwner()`, `isOwnedBy()`, `wantsToAttack()`, `tryToTeleportToOwner()`. Removed custom `SITTING` in favor of `isOrderedToSit()`/`isInSittingPose()`. |
+
 ## Risk Mitigation Review
 ### Concerns With Original Mitigations
 
