@@ -8,7 +8,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | :--- | :--- | :--- |
 | Phase 1: Dependency & Environment Setup | ✅ Complete | 100% |
 | Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% |
-| Phase 3: Networking & Core Mechanics | 🔄 In Progress | 7/7 complete (EntityData+TamableAnimal, Networking, Events, Sit/Perch, Food checks, ScavengeGoal, Distress sound) |
+| Phase 3: Networking & Core Mechanics | 🔄 In Progress | 7/8 (Swarm Intelligence pending — `SwarmManager` + `SwarmDistressGoal` + `CrowEventHub` wiring) |
 | Phase 4: World & Environment | ⏳ Not Started | 0% |
 | Phase 5: Polishing & Verification | ⏳ Not Started | 0% |
 
@@ -53,9 +53,15 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   ~~Placeholder distress sound — `ModSounds` registers `SoundEvent.createVariableRangeEvent("entity.crow.distress")` in `BuiltInRegistries.SOUND_EVENT`. `sounds.json` maps to placeholder WAV. Final audio asset deferred to Phase 5.~~
 
 **Pending:**
-*   Implement Swarm Intelligence — distress triggered via `ServerLivingEntityEvents.AFTER_DAMAGE`, single emission, 8-crow cap, 32-block radius (`distanceSquared ≤ 1024`), `SwarmManager` dispatcher with `SwarmDistressGoal` at priority 0. Wire `CrowEventHub` stubs (distress handler calls `crow.dropCarriedItem()` immediately).
+*   **Implement Swarm Intelligence** — `SwarmManager` dispatcher + `SwarmDistressGoal` (priority 0 on `goalSelector`). Wire all 4 `CrowEventHub` stubs.
+    *   **Triggers:** Untamed attacked → immediate swarm (source + 5 nearest, 32-block radius, `distanceSquared ≤ 1024`). Tamed attacked → 1st hit: full retaliation (~2s `wantsToAttack()` engagement). Tamed 3 hits in 30s → escalation to full swarm. Owner attacks hostile mob → swarm on that mob.
+    *   **Targeting:** Hostile mobs → indefinite. Players → 4s sliding window (resets on hit landed).
+    *   **Audio:** All 6 participating crows play distress with dual-layer variance (code + JSON pitch/volume randomization), every 20 ticks.
+    *   **Cooldown:** 15s per-crow participation cooldown. Single emission (no relay). Same-dimension only.
+    *   **Cancel:** Sit command cancels all swarm behavior. `dropCarriedItem()` on damage.
+    *   **Navigation:** `PathNavigation` ground pathfinding (Phase 3). `FlyingPathNavigation` + flight physics deferred to Phase 5.
 
-**Deferred to Phase 5:** Perched shoulder-positioning render (GeckoLib bone snap), client payload visual/audio reactions.
+**Deferred to Phase 5:** Perched shoulder-positioning render (GeckoLib bone snap), client payload visual/audio reactions, flight physics (`FlyingPathNavigation`), GeckoLib dual additive wing animation, distress sound asset variants.
 
 ### Phase 4: World & Environment
 *   Implement procedural spawning via `BiomeModifications`.
