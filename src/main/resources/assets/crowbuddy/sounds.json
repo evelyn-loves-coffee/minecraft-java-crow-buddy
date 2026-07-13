@@ -1,0 +1,10 @@
+{
+  "entity.crow.distress": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/distress",
+        "stream": false
+      }
+    ]
+  }
+}

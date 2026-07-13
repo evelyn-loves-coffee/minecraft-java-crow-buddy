@@ -8,7 +8,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | :--- | :--- | :--- |
 | Phase 1: Dependency & Environment Setup | ✅ Complete | 100% |
 | Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% |
-| Phase 3: Networking & Core Mechanics | 📐 Design Locked | Design complete, implementation pending |
+| Phase 3: Networking & Core Mechanics | 🔄 In Progress | 7/7 complete (EntityData+TamableAnimal, Networking, Events, Sit/Perch, Food checks, ScavengeGoal, Distress sound) |
 | Phase 4: World & Environment | ⏳ Not Started | 0% |
 | Phase 5: Polishing & Verification | ⏳ Not Started | 0% |
 
@@ -16,7 +16,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | Feature | Choice | Rationale |
 | :--- | :--- | :--- |
 | **Animation** | GeckoLib | Supports complex, fluid, and highly detailed crow-like behaviors. |
-| **Data Storage** | Data Components | Leverages modern, optimized, and strongly-typed Minecraft 26.2+ architecture. |
+| **Data Storage** | SynchedEntityData | MC 26.2 auto-persists all EntityData accessors via `ValueInput`/`ValueOutput` (replaced legacy NBT I/O). |
 | **Dependencies** | GeckoLib (via `implementation`) | Integrated as a prerequisite dependency. |
 | **Assets** | Minimal structure/Placeholder | Implement minimal structure (lang files, dummy textures) in Phase 1. |
 | **Registration** | Minecraft 26.2 Modern API | Align with "Tiny Takeover" standards and future-proof the mod. |
@@ -40,14 +40,22 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   ~~Update `fabric.mod.json` and `build.gradle` for source sets and entrypoints.~~
 *   ~~Configure DataGen pipeline via `fabricApi { configureDataGeneration() }` (Fabric Maven required for nested jar resolution).~~
 
-### Phase 3: Networking & Core Mechanics (Design Locked)
-*   Implement `ModNetworking` layer — `CustomPacketPayload` payloads registered via `PayloadTypeRegistry`, sent via `ServerPlayNetworking`. Packets: `DistressPayload` (S→C: entity ID + BlockPos + source ID), `ScavengePayload` (S→C: crow ID + carried item).
-*   Implement Scavenging logic — server-side AI goal (`ScavengeGoal`, priority 3), proximity-based acquisition (1.0 block), satiation-driven cooldown, weighted item priority (`beacon_payment_items` > `piglin_loved` > `trim_materials`).
-*   Implement Swarm Intelligence — distress triggered via `ServerLivingEntityEvents.AFTER_DAMAGE` (not mixin), single emission, 8-crow cap, 32-block radius (`distanceSquared ≤ 1024`), `SwarmManager` dispatcher with `SwarmDistressGoal` at priority 0.
-*   Implement Sit behavior — right-click toggles SITTING (existing); suppresses all goals.
-*   Implement Shoulder-Perch toggle — right-click toggles PERCHED (new EntityData boolean, synced); perched disables all goals and follows owner everywhere; unperched restores full AI with range-based recall.
-*   Register `AttackEntityCallback` handler to detect player-initiated attacks for tamed-crow defense triggering.
-*   Add placeholder distress sound event (`crowbuddy:entity.crow.distress`) — final asset deferred to Phase 5.
+### Phase 3: Networking & Core Mechanics
+**Implemented:**
+*   ~~EntityData expansion — `PERCHED`, `STATE`, `CARRIED_ITEM`, `SATIATION`, `RELATIONSHIP` via `SynchedEntityData`. Migrated `SITTING` to inherited `isOrderedToSit()`/`isInSittingPose()` from `TamableAnimal`.~~
+*   ~~`ModNetworking` layer — `DistressPayload` (S→C: entity ID + BlockPos + source ID), `ScavengePayload` (S→C: crow ID + carried item). Registered via `PayloadTypeRegistry.clientboundPlay()`, sent via `ServerPlayNetworking.send()`. Client receivers registered via `ClientPlayNetworking.registerGlobalReceiver()`.~~
+*   ~~Event Callbacks — `ServerLivingEntityEvents.AFTER_DAMAGE` + `AttackEntityCallback.EVENT` registered in `CrowEventHub`. 4 handler stubs log DEBUG; deferred wiring to `SwarmManager` (subsection 6).~~
+*   ~~Sit/Perch behavior — Shift+right-click toggles sit (`setOrderedToSit()`); normal right-click toggles perch (`PERCHED` boolean). Sit overrides perch. Tame required for perch. Follow logic in `tick()`.~~
+*   ~~`isFood()` — Checks `COCOA_BEANS` → false, `parrot_poisonous_food` tag → false, `BLACK_OIL_SUNFLOWER_SEEDS` → true, `parrot_food` tag → true.~~
+*   ~~`CrowEntity extends TamableAnimal` — Provides `isTame()`, `tame()`, `setOwner()`, `getOwner()`, `isOwnedBy()`, `wantsToAttack()`, `tryToTeleportToOwner()`, `canAttack()`.~~
+*   ~~Dead mixin cleanup — Deleted `CrowBuddyMixin.java`, emptied `crowbuddy.mixins.json` (`"required": false`).~~
+*   ~~Scavenging logic — `ScavengeGoal` at priority 3. Proximity acquisition (1.0 block, `distanceToSqr`). Weighted priority: `beacon_payment_items` > `piglin_loved` > `trim_materials` > fallback nearest. Satiation-driven cooldown: ≥0.8 → 60s, ≥0.5 → 240s, <0.5 → 480s. On pick-up: set `CARRIED_ITEM`, state → `CARRYING`, play `SoundEvents.ITEM_PICKUP`, broadcast `ScavengePayload`. `ScavengeGoal.dropCarriedItem()` spawns `ItemEntity` at crow position and resets state to `IDLE`. Wired into `registerGoals()` alongside `FloatGoal`(0), `TemptGoal`(1), `FollowOwnerGoal`(2), `RandomStrollGoal`(4), `LookAtPlayerGoal`(5), `RandomLookAroundGoal`(6).~~
+*   ~~Placeholder distress sound — `ModSounds` registers `SoundEvent.createVariableRangeEvent("entity.crow.distress")` in `BuiltInRegistries.SOUND_EVENT`. `sounds.json` maps to placeholder WAV. Final audio asset deferred to Phase 5.~~
+
+**Pending:**
+*   Implement Swarm Intelligence — distress triggered via `ServerLivingEntityEvents.AFTER_DAMAGE`, single emission, 8-crow cap, 32-block radius (`distanceSquared ≤ 1024`), `SwarmManager` dispatcher with `SwarmDistressGoal` at priority 0. Wire `CrowEventHub` stubs (distress handler calls `crow.dropCarriedItem()` immediately).
+
+**Deferred to Phase 5:** Perched shoulder-positioning render (GeckoLib bone snap), client payload visual/audio reactions.
 
 ### Phase 4: World & Environment
 *   Implement procedural spawning via `BiomeModifications`.

@@ -6,15 +6,22 @@
 A vanilla-plus, tameable entity that mirrors real-life crow presence through biome-specific spawning. It shares some behaviors with Parrots (flight, shoulder-sitting) but introduces unique crow-centric mechanics.
 
 ### Implementation Strategy
-* **Approach:** "From Scratch" (Approach B) to allow for custom flight physics, unique AI goals, and optimized performance.
-* **EntityData Tracking (synced):**
-    * `SITTING` (boolean): Sit command suppresses all behaviors.
+* **Approach:** "From Scratch" (Approach B) via `TamableAnimal` (MC 26.x) to allow custom flight physics, unique AI goals, and optimized performance while inheriting vanilla taming/ownership mechanics.
+* **EntityData Tracking (synced, 5 custom + 1 inherited):**
+    * `SITTING` (inherited from `TamableAnimal` via `setOrderedToSit()`/`isOrderedToSit()`): Sit command suppresses all behaviors.
     * `PERCHED` (boolean): Shoulder-perch toggle; when perched, all goals disabled, crow follows owner.
     * `STATE` (int): Maps to `CrowState` enum (`IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`).
     * `CARRIED_ITEM` (ItemStack): Mouth-held item for scavenging.
-* **NBT Persistence:**
-    * `Crow_Satiation`: Tracks health/food levels to determine behavior frequency.
-    * `Crow_Relationship`: Tracks player aggression.
+    * `SATIATION` (float): Tracks health/food levels, clamped 0.0–1.0.
+    * `RELATIONSHIP` (float): Tracks player aggression.
+* **Taming API (inherited from `TamableAnimal`):**
+    * `isTame()` / `setTame(boolean)` - tame state
+    * `setOwner(LivingEntity)` / `getOwner() / `getOwnerReference()` - owner tracking
+    * `isOwnedBy(LivingEntity)` - owner identity check
+    * `wantsToAttack(LivingEntity attacker, LivingEntity target)` - owner vs non-owner differentiation
+    * `tryToTeleportToOwner()` - teleport recall for distant owner
+    * `canAttack(LivingEntity)` - attack permission
+* **NBT Persistence:** Replaced with EntityData (MC 26.2 replaced NBT I/O with `ValueInput`/`ValueOutput`; all accessors auto-persist via `SynchedEntityData`).
 
 ### Behavior & AI
 * **Tamability:** 
