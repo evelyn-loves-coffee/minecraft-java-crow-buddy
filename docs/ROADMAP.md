@@ -21,13 +21,15 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   ~~Create minimal asset directory structure (`geckolib/models`, `geckolib/animations`) with files.~~
 
 ### Phase 2: Foundation - Registration & Data Generation
-*   Implement centralized `ModEntities` (common) with GeckoLib support.
-*   Implement `CrowEntity` class.
-*   Implement `CrowGeoModel` from reference template at `Downloads/crow-model/geckolib5/CrowGeoModel.java` (package → `com.crowbuddy`).
-*   Implement centralized `ModClientEntities` (client) for renderers/animations.
-*   Implement centralized `ModItems` using Data Components.
-*   Initialize Fabric DataGen pipeline.
-*   Implement DataGen providers for Items, Entities, and Tags (full providers).
+*   ~~Implement centralized `ModEntities` (common) with GeckoLib support.~~
+*   ~~Implement `CrowEntity` class with GeckoLib `GeoAnimatable` support.~~
+*   ~~Implement `CrowGeoModel` from reference template at `Downloads/crow-model/geckolib5/CrowGeoModel.java` (package → `com.crowbuddy`).~~
+*   ~~Implement `CrowRenderer` (extends `GeoEntityRenderer<CrowEntity, LivingEntityRenderState>`).~~
+*   ~~Implement centralized `ModClientEntities` (client) for renderer registration via reflection.~~
+*   ~~Implement centralized `ModItems` with `BLACK_OIL_SUNFLOWER_SEEDS`.~~
+*   ~~Register entity and item in `CrowBuddy.onInitialize()` using MC 26.2 `Registry.register()` API.~~
+*   ~~Update `fabric.mod.json` and `build.gradle` for source sets and entrypoints.~~
+*   **Deferred to Phase 5**: DataGen pipeline and providers (Fabric API nested jars not resolvable in Loom 1.17 compile classpath).
 
 ### Phase 3: Networking & Core Mechanics
 *   Implement `ModNetworking` layer for client-server communication.
@@ -41,6 +43,8 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   Implement Crow Nests as procedural Features with Block Tag compatibility.
 
 ### Phase 5: Polishing & Verification
+*   **DataGen pipeline**: Initialize Fabric DataGen infrastructure with `DataGeneratorEntrypoint`.
+*   Implement DataGen providers for Items, Entities, and Tags (full providers).
 *   Finalize assets (models, textures, sounds).
 *   Conduct full build and typecheck.
 *   Verify registry logs and initialization.

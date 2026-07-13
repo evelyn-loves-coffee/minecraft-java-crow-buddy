@@ -1,10 +1,11 @@
 package com.crowbuddy.client;
 
+import com.crowbuddy.client.ModClientEntities;
 import net.fabricmc.api.ClientModInitializer;
 
 public class CrowBuddyClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
-		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
+		ModClientEntities.register();
 	}
 }
