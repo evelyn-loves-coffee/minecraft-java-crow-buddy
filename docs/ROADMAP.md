@@ -7,7 +7,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | Phase | Status | Completion |
 | :--- | :--- | :--- |
 | Phase 1: Dependency & Environment Setup | ✅ Complete | 100% |
-| Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% (DataGen deferred to Phase 5) |
+| Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% |
 | Phase 3: Networking & Core Mechanics | ⏳ Not Started | 0% |
 | Phase 4: World & Environment | ⏳ Not Started | 0% |
 | Phase 5: Polishing & Verification | ⏳ Not Started | 0% |
@@ -38,7 +38,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   ~~Implement centralized `ModItems` with `BLACK_OIL_SUNFLOWER_SEEDS`.~~
 *   ~~Register entity and item in `CrowBuddy.onInitialize()` using MC 26.2 `Registry.register()` API.~~
 *   ~~Update `fabric.mod.json` and `build.gradle` for source sets and entrypoints.~~
-*   **Deferred to Phase 5**: DataGen pipeline and providers (Fabric API nested jars not resolvable in Loom 1.17 compile classpath).
+*   ~~Configure DataGen pipeline via `fabricApi { configureDataGeneration() }` (Fabric Maven required for nested jar resolution).~~
 
 ### Phase 3: Networking & Core Mechanics
 *   Implement `ModNetworking` layer for client-server communication.
@@ -52,8 +52,6 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   Implement Crow Nests as procedural Features with Block Tag compatibility.
 
 ### Phase 5: Polishing & Verification
-*   **DataGen pipeline**: Initialize Fabric DataGen infrastructure with `DataGeneratorEntrypoint`.
-*   Implement DataGen providers for Items, Entities, and Tags (full providers).
 *   Finalize assets (models, textures, sounds).
 *   Conduct full build and typecheck.
 *   Verify registry logs and initialization.
