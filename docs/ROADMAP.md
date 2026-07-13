@@ -3,6 +3,15 @@
 ## 1. Project Overview
 The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft. It mirrors real-life crow presence through biome-specific spawning and shares behaviors with Parrots (flight, shoulder-sitting) while introducing unique crow-centric mechanics.
 
+## 1.1. Overall Status
+| Phase | Status | Completion |
+| :--- | :--- | :--- |
+| Phase 1: Dependency & Environment Setup | ✅ Complete | 100% |
+| Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% (DataGen deferred to Phase 5) |
+| Phase 3: Networking & Core Mechanics | ⏳ Not Started | 0% |
+| Phase 4: World & Environment | ⏳ Not Started | 0% |
+| Phase 5: Polishing & Verification | ⏳ Not Started | 0% |
+
 ## 2. Technical Choices & Design Decisions
 | Feature | Choice | Rationale |
 | :--- | :--- | :--- |
