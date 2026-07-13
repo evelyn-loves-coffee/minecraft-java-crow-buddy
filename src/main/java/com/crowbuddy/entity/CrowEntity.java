@@ -77,8 +77,14 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
+        final CrowEntity self = this;
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
-            this, 1.0, 6.0f, 10.0f));
+            this, 1.0, 6.0f, 10.0f) {
+            @Override
+            public boolean canUse() {
+                return !self.isPerched() && super.canUse();
+            }
+        });
         this.scavengeGoal = new ScavengeGoal(this);
         this.goalSelector.addGoal(3, this.scavengeGoal);
         this.goalSelector.addGoal(4, new RandomStrollGoal(this, 1.0));
@@ -196,13 +202,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     private static boolean isInTag(Item item, TagKey<Item> tag) {
-        for (net.minecraft.core.Holder<Item> h :
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
-            if (h.value() == item) {
-                return true;
-            }
-        }
-        return false;
+        return item.builtInRegistryHolder().is(tag);
     }
 
     @Override

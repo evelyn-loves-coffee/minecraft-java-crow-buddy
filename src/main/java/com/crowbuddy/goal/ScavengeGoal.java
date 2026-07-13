@@ -160,13 +160,7 @@ public class ScavengeGoal extends Goal {
     }
 
     private static boolean isInTag(Item item, TagKey<Item> tag) {
-        for (net.minecraft.core.Holder<Item> h :
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
-            if (h.value() == item) {
-                return true;
-            }
-        }
-        return false;
+        return item.builtInRegistryHolder().is(tag);
     }
 
     private void temporaryCooldown() {
