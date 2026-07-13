@@ -2,6 +2,7 @@ package com.crowbuddy.event;
 
 import com.crowbuddy.CrowBuddy;
 import com.crowbuddy.entity.CrowEntity;
+import com.crowbuddy.swarm.SwarmManager;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.world.InteractionResult;
@@ -40,25 +41,19 @@ public class CrowEventHub {
     }
 
     private static void handleCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
-        if (!crow.getCarriedItem().isEmpty()) {
-            crow.dropCarriedItem();
-        }
-        log("Crow damaged: " + crow.getId() + " by " + source);
+        SwarmManager.INSTANCE.onCrowDamaged(crow, source, amount);
     }
 
     private static void handleNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
-        // TODO: Delegate to SwarmManager for crow defense trigger
-        log("Entity damaged: " + entity.getType().getDescription().getString());
+        SwarmManager.INSTANCE.onNonCrowDamaged(entity, source);
     }
 
     private static void handlePlayerAttackCrow(Player player, CrowEntity crow) {
-        // TODO: Delegate to SwarmManager for attack detection
-        log("Player " + player.getName().getString() + " attacked crow " + crow.getId());
+        SwarmManager.INSTANCE.onPlayerAttackCrow(player, crow);
     }
 
     private static void handlePlayerAttackTarget(Player player, Entity target) {
-        // TODO: Delegate to SwarmManager for defending player logic
-        log("Player " + player.getName().getString() + " attacked target " + target.getType().getDescription().getString());
+        SwarmManager.INSTANCE.onPlayerAttackTarget(player, target);
     }
 
     private static void log(String msg) {

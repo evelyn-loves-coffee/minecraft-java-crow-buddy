@@ -31,9 +31,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.crowbuddy.goal.ScavengeGoal;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
+import com.crowbuddy.goal.SwarmDistressGoal;
+import com.crowbuddy.swarm.SwarmManager;
 
 public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private static final TagKey<Item> PARROT_POISONOUS = TagKey.create(
@@ -58,6 +57,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private ScavengeGoal scavengeGoal;
+    private SwarmDistressGoal swarmGoal;
 
     public CrowEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
@@ -72,6 +72,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     protected void registerGoals() {
+        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.INSTANCE, SwarmDistressGoal.Mode.SWARM);
+        this.goalSelector.addGoal(0, this.swarmGoal);
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
@@ -140,6 +142,24 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     public LivingEntity getOwner() {
         return net.minecraft.world.entity.EntityReference.getLivingEntity(
             this.getOwnerReference(), this.level());
+    }
+
+    public SwarmDistressGoal getSwarmGoal() {
+        return this.swarmGoal;
+    }
+
+    @Override
+    public boolean wantsToAttack(LivingEntity other, LivingEntity target) {
+        if (super.wantsToAttack(other, target)) {
+            return true;
+        }
+        if (this.swarmGoal != null) {
+            LivingEntity swarmTarget = this.swarmGoal.getTarget();
+            if (swarmTarget == target) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public ScavengeGoal getScavengeGoal() {
