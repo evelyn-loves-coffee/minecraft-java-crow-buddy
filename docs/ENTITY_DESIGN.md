@@ -7,10 +7,14 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
 
 ### Implementation Strategy
 * **Approach:** "From Scratch" (Approach B) to allow for custom flight physics, unique AI goals, and optimized performance.
-* **NBT Tracking:**
+* **EntityData Tracking (synced):**
+    * `SITTING` (boolean): Sit command suppresses all behaviors.
+    * `PERCHED` (boolean): Shoulder-perch toggle; when perched, all goals disabled, crow follows owner.
+    * `STATE` (int): Maps to `CrowState` enum (`IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`).
+    * `CARRIED_ITEM` (ItemStack): Mouth-held item for scavenging.
+* **NBT Persistence:**
     * `Crow_Satiation`: Tracks health/food levels to determine behavior frequency.
     * `Crow_Relationship`: Tracks player aggression.
-    * `Crow_State`: Tracks current behavioral state (e.g., `IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`).
 
 ### Behavior & AI
 * **Tamability:** 
@@ -43,6 +47,12 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
         * **Targeting (Players):** Attack for a 4-second sliding window.
         * **Control:** Players can command the crow to "sit" to cancel a distress event.
     * **Sitting:** "Sit" command suppresses all active behaviors, including search, flight, combat, and distress.
+    * **Distress Detection:** Triggered via `ServerLivingEntityEvents.AFTER_DAMAGE` (Fabric event API) — no custom mixin required.
+* **Shoulder-Perch Toggle (Resolved Decision D):**
+    * **Toggle:** Right-click on tamed crow toggles `PERCHED` state (synced EntityData boolean).
+    * **Perched:** All AI goals (`ScavengeGoal`, `SwarmDistressGoal`, etc.) disabled. Crow follows owner everywhere, rendered at shoulder position.
+    * **Unperched:** Full AI autonomy restored. If owner exceeds recall range, crow flies toward owner until within range or perched again.
+    * **State Hierarchy:** `SITTING` overrides `PERCHED`. When sitting, perch state is preserved and restored on stand.
 
 ---
 

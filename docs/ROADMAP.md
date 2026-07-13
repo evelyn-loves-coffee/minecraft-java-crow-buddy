@@ -8,7 +8,7 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 | :--- | :--- | :--- |
 | Phase 1: Dependency & Environment Setup | ✅ Complete | 100% |
 | Phase 2: Foundation - Registration & Data Generation | ✅ Complete | 100% |
-| Phase 3: Networking & Core Mechanics | ⏳ Not Started | 0% |
+| Phase 3: Networking & Core Mechanics | 📐 Design Locked | Design complete, implementation pending |
 | Phase 4: World & Environment | ⏳ Not Started | 0% |
 | Phase 5: Polishing & Verification | ⏳ Not Started | 0% |
 
@@ -40,12 +40,14 @@ The Crow Buddy mod aims to add a vanilla-plus, tameable crow entity to Minecraft
 *   ~~Update `fabric.mod.json` and `build.gradle` for source sets and entrypoints.~~
 *   ~~Configure DataGen pipeline via `fabricApi { configureDataGeneration() }` (Fabric Maven required for nested jar resolution).~~
 
-### Phase 3: Networking & Core Mechanics
-*   Implement `ModNetworking` layer for client-server communication.
-*   Implement Scavenging logic (Proximity-based acquisition, mouth state, server-side AI).
-*   Implement Swarm Intelligence (Distress system: single emission, 8 crows, 32-block radius via `distanceSquared`, `Entity ID` + `BlockPos` payloads).
-*   Implement "Sit" behavior and interaction logic.
-*   **Implement `CrowBuddyMixin` using the Dispatcher Pattern to trigger server-side swarm/event logic.**
+### Phase 3: Networking & Core Mechanics (Design Locked)
+*   Implement `ModNetworking` layer — `CustomPacketPayload` payloads registered via `PayloadTypeRegistry`, sent via `ServerPlayNetworking`. Packets: `DistressPayload` (S→C: entity ID + BlockPos + source ID), `ScavengePayload` (S→C: crow ID + carried item).
+*   Implement Scavenging logic — server-side AI goal (`ScavengeGoal`, priority 3), proximity-based acquisition (1.0 block), satiation-driven cooldown, weighted item priority (`beacon_payment_items` > `piglin_loved` > `trim_materials`).
+*   Implement Swarm Intelligence — distress triggered via `ServerLivingEntityEvents.AFTER_DAMAGE` (not mixin), single emission, 8-crow cap, 32-block radius (`distanceSquared ≤ 1024`), `SwarmManager` dispatcher with `SwarmDistressGoal` at priority 0.
+*   Implement Sit behavior — right-click toggles SITTING (existing); suppresses all goals.
+*   Implement Shoulder-Perch toggle — right-click toggles PERCHED (new EntityData boolean, synced); perched disables all goals and follows owner everywhere; unperched restores full AI with range-based recall.
+*   Register `AttackEntityCallback` handler to detect player-initiated attacks for tamed-crow defense triggering.
+*   Add placeholder distress sound event (`crowbuddy:entity.crow.distress`) — final asset deferred to Phase 5.
 
 ### Phase 4: World & Environment
 *   Implement procedural spawning via `BiomeModifications`.
