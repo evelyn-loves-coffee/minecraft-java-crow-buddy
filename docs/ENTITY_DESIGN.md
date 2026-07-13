@@ -10,7 +10,7 @@ A vanilla-plus, tameable entity that mirrors real-life crow presence through bio
 * **EntityData Tracking (synced, 5 custom + 1 inherited):**
     * `SITTING` (inherited from `TamableAnimal` via `setOrderedToSit()`/`isOrderedToSit()`): Sit command suppresses all behaviors.
     * `PERCHED` (boolean): Shoulder-perch toggle; when perched, all goals disabled, crow follows owner.
-    * `STATE` (int): Maps to `CrowState` enum (`IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`).
+    * `STATE` (int): Maps to `CrowState` enum (`IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`, `SWARM`).
     * `CARRIED_ITEM` (ItemStack): Mouth-held item for scavenging.
     * `SATIATION` (float): Tracks health/food levels, clamped 0.0–1.0.
     * `RELATIONSHIP` (float): Tracks player aggression.

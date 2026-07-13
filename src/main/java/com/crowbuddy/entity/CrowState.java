@@ -5,5 +5,6 @@ public enum CrowState {
 	SEARCHING,
 	CARRYING,
 	COMBAT,
-	DISTRESS
+	DISTRESS,
+	SWARM
 }

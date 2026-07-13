@@ -11,4 +11,11 @@ Crows are unique, tameable entities that spawn in biomes mirroring real-life hab
 * **Vanilla-Plus Integration:** Designed to adhere to the "Tiny Takeover" entity standards and the PAWS (Performance, Auditability, Workability, Scalability) development standard.
 
 ---
-*Development is currently in the Design Phase.*
+### Implementation Status
+| Phase | Status |
+|-------|--------|
+| Phase 1: Dependency & Environment Setup | ✅ Complete |
+| Phase 2: Foundation - Registration & Data Generation | ✅ Complete |
+| Phase 3: Networking & Core Mechanics | ✅ Complete |
+| Phase 4: World & Environment | ⏳ Not Started |
+| Phase 5: Polishing & Verification | ⏳ Not Started |

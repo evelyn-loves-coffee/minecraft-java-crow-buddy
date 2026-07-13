@@ -89,7 +89,7 @@ _All resolved._
 |---|------|--------------|-------------------|
 | D1 | `CrowBuddyMixin` dead no-op | ✅ **Resolved** — Phase 3 | Deleted `CrowBuddyMixin.java` + emptied `crowbuddy.mixins.json` (`"required": false`, `"mixins": []`) |
 | D2 | Renderer perched pose | Shoulder-positioning deferred: GeckoLib `GeoEntityRenderer` has no clean entity access in `adjustRenderPose()` | Custom render layer or GeckoLib bone snap (Phase 5) |
-| D3 | `CrowEventHub` stubs | 4 methods logging DEBUG; delegation to `SwarmManager` not wired | Wire in subsection 6 — swarm intelligence implementation |
+| D3 | `CrowEventHub` stubs | ✅ **Resolved** — Phase 3 | All 4 handlers delegate to `SwarmManager.INSTANCE`. Event wiring complete. |
 | D4 | `isFood()` hardcoded `false` | ✅ **Resolved** — Phase 3 implementation | Checks: `COCOA_BEANS` → false, `parrot_poisonous_food` tag → false, `BLACK_OIL_SUNFLOWER_SEEDS` → true, `parrot_food` tag → true |
 | D5 | Client payload handlers empty | `handleDistress()` / `handleScavenge()` have no visual/audio reaction | Visual/audio cues (Phase 5) |
 | D6 | `crow extends Animal` not `TamableCreature` | ✅ **Resolved** — Phase 3 | Migrated to `TamableAnimal` (MC 26.x equiv). Added: `isTame()`, `tame()`, `setOwner()`, `getOwnerReference()`, `getOwner()`, `isOwnedBy()`, `wantsToAttack()`, `tryToTeleportToOwner()`. Removed custom `SITTING` in favor of `isOrderedToSit()`/`isInSittingPose()`. |
@@ -103,7 +103,7 @@ _All resolved._
 | Risk | Original Mitigation | Concern | Revised Mitigation | Status |
 |------|---------------------|---------|---------------------|--------|
 | **R1: Networking API shift** | "Verify fabric-networking-api-v1 interface." | Original design assumed `CustomPacketS2C` which **does not exist** in v6.3.3. | **ELIMINATED**: API locked as `CustomPacketPayload` + `PayloadTypeRegistry` + `ServerPlayNetworking`. All compile-verified. | ✅ |
-| **R2: Goal priority conflict** | "Distress has highest priority; ScavengeGoal checks activeDistress flag." | `GoalSelector` priority is arbitrary unless explicitly set via `addGoal(priority, goal)`. | `SwarmDistressGoal` at priority 0; all other goals shifted +1. `FloatGoal` remains at 0 — `SwarmDistressGoal` uses priority 0 on `targetSelector` or explicitly allows `FloatGoal` to coexist. | ⚠️ **Active** |
+| **R2: Goal priority conflict** | "Distress has highest priority; ScavengeGoal checks activeDistress flag." | `GoalSelector` priority is arbitrary unless explicitly set via `addGoal(priority, goal)`. | `SwarmDistressGoal` at priority 0 on `goalSelector` alongside `FloatGoal`. `SwarmDistressGoal.canUse()` gates on target being set by `SwarmManager`, so goals coexist without conflict. | ✅ **Resolved** |
 | **R3: Mixin conflict with GeckoLib** | "Scope with `require = 1` to fail gracefully." | **ELIMINATED**: No custom `LivingEntity` mixin needed. | Use Fabric event system exclusively for damage/attack detection. Zero mixin conflicts possible. | ✅ |
 | **R4: ITEM_STACK serialization** | "Verify EntityDataSerializers.ITEM_STACK exists." | **LOCKED**: Compile-verified against MC 26.2 runtime. | No action needed. | ✅ |
 | **R5: ItemEntity proximity performance** | "Use `level.getEntitiesOfClass` — spatially indexed." | **LOCKED**: Inherent to MC chunk-based entity system. | No action needed. | ✅ |
@@ -116,6 +116,7 @@ _All resolved._
 ### Net Assessment
 - **Eliminated (R1, R3):** API verification and Fabric event usage removed networking and mixin risks
 - **Locked (R4, R5, OA1-OA9):** Compile verification, `javap` inspection of MC 26.2 deobf jar, and Fabric API jar confirm all API contracts
-- **Mitigated (R2, R6-R10):** Cooldowns, null-checks, fallback paths, and defensive classification reduce impact
-- **R2 (goal priority) remains the only active risk** — requires careful implementation during `registerGoals()` reordering. All other risks have compile-verified mitigations.
+- **Resolved (R2):** `SwarmDistressGoal` at priority 0 on `goalSelector` alongside `FloatGoal`; gating via target state prevents conflict
+- **Mitigated (R6-R10):** Cooldowns, null-checks, fallback paths, and defensive classification reduce impact
+- **No active risks** — all risks eliminated, locked, resolved, or mitigated. Phase 3 implementation confirmed via clean build.
 - **No blocking risks for Phase 3 implementation** — all 8 open assumptions (OA1, OA3-OA9) are now LOCKED via binary inspection
