@@ -48,6 +48,12 @@ dependencies {
 
 	// GeckoLib
 	implementation "maven.modrinth:8BmcQJ2H:${project.geckolib_version}"
+
+	// Testing
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.mockito:mockito-core:5.8.0'
+	testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
 }
 
 processResources {
@@ -73,13 +79,8 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
-jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
-
-	from("LICENSE") {
-		rename { "${it}_$projectName"}
-	}
+test {
+	useJUnitPlatform()
 }
 
 // configure the maven publication
