@@ -1,6 +1,8 @@
 package com.crowbuddy.entity.ai.goal;
 
 import com.crowbuddy.entity.CrowEntity;
+import com.crowbuddy.block.entity.CrowNestBlockEntity;
+import com.crowbuddy.block.entity.CrowNestStateMachine;
 import com.crowbuddy.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -76,7 +78,7 @@ public class CrowNestSeekGoal extends Goal {
         }
         var be = this.crow.level().getBlockEntity(pos);
         if (be instanceof com.crowbuddy.block.entity.CrowNestBlockEntity nestBE) {
-            if (nestBE.getStage() == com.crowbuddy.block.entity.CrowNestBlockEntity.STAGE_IDLE) {
+            if (nestBE.getStage() == CrowNestStateMachine.STAGE_IDLE) {
                 nestBE.startIncubation();
             }
         }
