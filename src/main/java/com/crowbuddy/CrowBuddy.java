@@ -3,8 +3,11 @@ package com.crowbuddy;
 import com.crowbuddy.event.CrowEventHub;
 import com.crowbuddy.item.ModItems;
 import com.crowbuddy.networking.ModNetworking;
+import com.crowbuddy.registry.ModBlocks;
 import com.crowbuddy.registry.ModEntities;
 import com.crowbuddy.sound.ModSounds;
+import com.crowbuddy.worldgen.CrowSpawning;
+import com.crowbuddy.worldgen.ModFeatures;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
@@ -18,10 +21,13 @@ public class CrowBuddy implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Hello Crow Buddy world!");
 		ModEntities.register();
+		ModBlocks.register();
 		ModItems.register();
 		ModSounds.register();
 		ModNetworking.registerPayloads();
 		CrowEventHub.registerEvents();
+		ModFeatures.register();
+		CrowSpawning.initialize();
 	}
 
 	public static Identifier id(String path) {

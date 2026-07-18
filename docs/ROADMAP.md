@@ -59,8 +59,11 @@ _(none)_
 **Deferred to Phase 5:** Perched shoulder-positioning render (GeckoLib bone snap), client payload visual/audio reactions, flight physics (`FlyingPathNavigation`), GeckoLib dual additive wing animation, distress sound asset variants.
 
 ### Phase 4: World & Environment
-*   Implement procedural spawning via `BiomeModifications`.
-*   Implement Crow Nests as procedural Features with Block Tag compatibility.
+*   Implement procedural spawning via `BiomeModifications` (weight 2-3, flock 2-4).
+*   Implement Crow Nest block (`BlockEntity`) with state machine.
+*   Implement Crow Nest as procedural Feature with `#minecraft:logs` compatibility.
+*   Implement breeding lifecycle (turtle precedent): mating → nest-seeking → eggs → incubation → hatch → juvenile → fledging.
+*   Nest block is player-placeable via `BlockItem` + crafting recipe.
 
 ### Phase 5: Polishing & Verification
 *   Finalize assets (models, textures, sounds).

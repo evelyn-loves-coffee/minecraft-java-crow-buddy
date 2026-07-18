@@ -6,5 +6,53 @@
         "stream": false
       }
     ]
+  },
+  "entity.crow.mate": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/mate",
+        "stream": false
+      }
+    ]
+  },
+  "entity.crow.egg_lay": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/egg_lay",
+        "stream": false
+      }
+    ]
+  },
+  "entity.crow.hatch": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/hatch",
+        "stream": false
+      }
+    ]
+  },
+  "entity.crow.fledgling": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/fledgling",
+        "stream": false
+      }
+    ]
+  },
+  "entity.crow.baby_flight": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/baby_flight",
+        "stream": false
+      }
+    ]
+  },
+  "entity.crow.grow": {
+    "sounds": [
+      {
+        "name": "crowbuddy:entity/crow/grow",
+        "stream": false
+      }
+    ]
   }
 }
