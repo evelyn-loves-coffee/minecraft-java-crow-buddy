@@ -17,11 +17,14 @@ import java.util.EnumSet;
 
 public class CrowNestSeekGoal extends Goal {
 
+    private static final int SEARCH_INTERVAL = 20;
+
     private final CrowEntity crow;
     private final double speed;
     private final int timeoutTicks;
     private int ticksElapsed;
     private BlockPos targetPos;
+    private long lastSearchTick = -100;
 
     public CrowNestSeekGoal(CrowEntity crow, double speed, int timeoutTicks) {
         this.crow = crow;
@@ -38,7 +41,11 @@ public class CrowNestSeekGoal extends Goal {
         if (this.crow.isInSittingPose()) {
             return false;
         }
-        this.targetPos = findNearestNest(this.crow);
+        long currentTick = this.crow.level().getGameTime();
+        if (this.targetPos == null || (currentTick - this.lastSearchTick) >= SEARCH_INTERVAL) {
+            this.targetPos = findNearestNest(this.crow);
+            this.lastSearchTick = currentTick;
+        }
         return this.targetPos != null;
     }
 
@@ -70,6 +77,8 @@ public class CrowNestSeekGoal extends Goal {
     @Override
     public void stop() {
         this.crow.setInMatingState(false);
+        this.targetPos = null;
+        this.lastSearchTick = -100;
     }
 
     private void enterNest(BlockPos pos) {
@@ -106,7 +115,6 @@ public class CrowNestSeekGoal extends Goal {
 
         int grid = maxRange * 2 + 1;
         BitSet visited = new BitSet(grid * grid * grid);
-        queue.add(start);
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.pollFirst();

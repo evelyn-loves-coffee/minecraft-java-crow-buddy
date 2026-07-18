@@ -10,58 +10,66 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SwarmManager {
 
     private static final int SWARM_RADIUS_SQ = 1024;
     private static final int SWARM_CAP = 6;
     private static final long COOLDOWN_TICKS = 300;
-    private static final long ESCALATION_WINDOW_MS = 30000;
+    private static final long ESCALATION_WINDOW_TICKS = 600;
     private static final int ESCALATION_THRESHOLD = 3;
     private static final long RETALIATION_TICKS = 40;
 
-    private final Map<Integer, Long> cooldowns = new ConcurrentHashMap<>();
-    private final Map<Integer, Long> retaliationTimers = new ConcurrentHashMap<>();
-    private final Map<Integer, List<Long>> escalationHistory = new ConcurrentHashMap<>();
+    private final Map<String, Long> cooldowns = new ConcurrentHashMap<>();
+    private final Map<String, Long> retaliationTimers = new ConcurrentHashMap<>();
+    private final Map<String, CopyOnWriteArrayList<Long>> escalationHistory = new ConcurrentHashMap<>();
 
     public static SwarmManager INSTANCE = new SwarmManager();
 
-    public void checkCooldown(int crowId, long currentTick) {
-        Long cd = cooldowns.get(crowId);
-        if (cd != null && (currentTick - cd) < COOLDOWN_TICKS) {
-            cooldowns.put(crowId, cd);
-            return;
-        }
-        cooldowns.remove(crowId);
+    private static String dimKey(Level level, int crowId) {
+        return level.dimension().toString() + ":" + crowId;
     }
 
-    public boolean isInCooldown(int crowId, long currentTick) {
-        Long cd = cooldowns.get(crowId);
+    public void checkCooldown(Level level, int crowId, long currentTick) {
+        String key = dimKey(level, crowId);
+        Long cd = cooldowns.get(key);
+        if (cd != null && (currentTick - cd) < COOLDOWN_TICKS) {
+            cooldowns.put(key, cd);
+            return;
+        }
+        cooldowns.remove(key);
+    }
+
+    public boolean isInCooldown(Level level, int crowId, long currentTick) {
+        String key = dimKey(level, crowId);
+        Long cd = cooldowns.get(key);
         return cd != null && (currentTick - cd) < COOLDOWN_TICKS;
     }
 
-    public void setCooldown(int crowId, long currentTick) {
-        cooldowns.put(crowId, currentTick);
+    public void setCooldown(Level level, int crowId, long currentTick) {
+        cooldowns.put(dimKey(level, crowId), currentTick);
     }
 
-    public void checkRetaliation(int crowId, long currentTick) {
-        Long rt = retaliationTimers.get(crowId);
+    public void checkRetaliation(Level level, int crowId, long currentTick) {
+        String key = dimKey(level, crowId);
+        Long rt = retaliationTimers.get(key);
         if (rt != null && (currentTick - rt) >= RETALIATION_TICKS) {
-            retaliationTimers.remove(crowId);
+            retaliationTimers.remove(key);
         }
     }
 
-    public boolean isInRetaliation(int crowId, long currentTick) {
-        Long rt = retaliationTimers.get(crowId);
+    public boolean isInRetaliation(Level level, int crowId, long currentTick) {
+        String key = dimKey(level, crowId);
+        Long rt = retaliationTimers.get(key);
         return rt != null && (currentTick - rt) < RETALIATION_TICKS;
     }
 
     private List<CrowEntity> findNearbyCrows(CrowEntity source, Level level) {
-        List<CrowEntity> candidates = new ArrayList<>();
+        List<CrowEntity> candidates = new java.util.ArrayList<>();
         AABB searchBox = source.getBoundingBox().inflate(Math.sqrt(SWARM_RADIUS_SQ));
         List<CrowEntity> allCrows = level.getEntitiesOfClass(CrowEntity.class, searchBox);
 
@@ -120,9 +128,10 @@ public class SwarmManager {
             crow.dropCarriedItem();
         }
 
-        long currentTick = crow.level().getGameTime();
+        Level level = crow.level();
+        long currentTick = level.getGameTime();
 
-        if (isInCooldown(crow.getId(), currentTick)) {
+        if (isInCooldown(level, crow.getId(), currentTick)) {
             return;
         }
 
@@ -143,11 +152,11 @@ public class SwarmManager {
             return;
         }
 
-        recordEscalationHit(crow.getId());
+        recordEscalationHit(level, crow.getId(), currentTick);
 
-        if (getEscalationCount(crow.getId()) >= ESCALATION_THRESHOLD) {
+        if (getEscalationCount(level, crow.getId(), currentTick) >= ESCALATION_THRESHOLD) {
             triggerSwarm(crow, attacker);
-            escalationHistory.remove(crow.getId());
+            escalationHistory.remove(dimKey(level, crow.getId()));
             return;
         }
 
@@ -155,9 +164,10 @@ public class SwarmManager {
     }
 
     public void onPlayerAttackCrow(Player player, CrowEntity crow) {
-        long currentTick = crow.level().getGameTime();
+        Level level = crow.level();
+        long currentTick = level.getGameTime();
 
-        if (isInCooldown(crow.getId(), currentTick)) {
+        if (isInCooldown(level, crow.getId(), currentTick)) {
             return;
         }
 
@@ -170,11 +180,11 @@ public class SwarmManager {
             return;
         }
 
-        recordEscalationHit(crow.getId());
+        recordEscalationHit(level, crow.getId(), currentTick);
 
-        if (getEscalationCount(crow.getId()) >= ESCALATION_THRESHOLD) {
+        if (getEscalationCount(level, crow.getId(), currentTick) >= ESCALATION_THRESHOLD) {
             triggerSwarm(crow, player);
-            escalationHistory.remove(crow.getId());
+            escalationHistory.remove(dimKey(level, crow.getId()));
             return;
         }
 
@@ -200,51 +210,54 @@ public class SwarmManager {
     }
 
     private void triggerSwarm(CrowEntity source, LivingEntity target) {
-        long currentTick = source.level().getGameTime();
-        setCooldown(source.getId(), currentTick);
+        Level level = source.level();
+        long currentTick = level.getGameTime();
+        setCooldown(level, source.getId(), currentTick);
         activateSwarmMode(source, target);
 
-        List<CrowEntity> responders = findNearbyCrows(source, source.level());
+        List<CrowEntity> responders = findNearbyCrows(source, level);
 
         for (CrowEntity crow : responders) {
-            if (isInCooldown(crow.getId(), currentTick)) {
+            if (isInCooldown(level, crow.getId(), currentTick)) {
                 continue;
             }
             if (crow.isInSittingPose()) {
                 continue;
             }
-            setCooldown(crow.getId(), currentTick);
+            setCooldown(level, crow.getId(), currentTick);
             activateSwarmMode(crow, target);
         }
     }
 
     private void triggerRetaliation(CrowEntity crow, LivingEntity attacker) {
-        long currentTick = crow.level().getGameTime();
-        setRetaliationCooldown(crow.getId(), currentTick);
+        Level level = crow.level();
+        long currentTick = level.getGameTime();
+        setRetaliationCooldown(level, crow.getId(), currentTick);
         activateSwarmMode(crow, attacker);
     }
 
-    private void setRetaliationCooldown(int crowId, long currentTick) {
-        retaliationTimers.put(crowId, currentTick);
-        setCooldown(crowId, currentTick);
+    private void setRetaliationCooldown(Level level, int crowId, long currentTick) {
+        String key = dimKey(level, crowId);
+        retaliationTimers.put(key, currentTick);
+        setCooldown(level, crowId, currentTick);
     }
 
-    private void recordEscalationHit(int crowId) {
+    private void recordEscalationHit(Level level, int crowId, long gameTick) {
+        String key = dimKey(level, crowId);
         List<Long> history = escalationHistory.computeIfAbsent(
-            crowId, k -> new ArrayList<>()
+            key, k -> new CopyOnWriteArrayList<>()
         );
-        long now = System.currentTimeMillis();
-        history.removeIf(ts -> (now - ts) > ESCALATION_WINDOW_MS);
-        history.add(now);
+        history.removeIf(ts -> (gameTick - ts) > ESCALATION_WINDOW_TICKS);
+        history.add(gameTick);
     }
 
-    private int getEscalationCount(int crowId) {
-        List<Long> history = escalationHistory.get(crowId);
+    private int getEscalationCount(Level level, int crowId, long gameTick) {
+        String key = dimKey(level, crowId);
+        List<Long> history = escalationHistory.get(key);
         if (history == null) {
             return 0;
         }
-        long now = System.currentTimeMillis();
-        history.removeIf(ts -> (now - ts) > ESCALATION_WINDOW_MS);
+        history.removeIf(ts -> (gameTick - ts) > ESCALATION_WINDOW_TICKS);
         return history.size();
     }
 

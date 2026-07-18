@@ -1,6 +1,7 @@
 package com.crowbuddy.block;
 
 import com.crowbuddy.block.entity.CrowNestBlockEntity;
+import com.crowbuddy.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -39,6 +40,6 @@ public class CrowNestBlock extends net.minecraft.world.level.block.Block impleme
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new CrowNestBlockEntity(pos, state);
+        return new CrowNestBlockEntity(ModBlocks.getCrowNestBE(), pos, state);
     }
 }

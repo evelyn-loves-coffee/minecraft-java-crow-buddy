@@ -67,7 +67,7 @@ public class ScavengeGoal extends Goal {
             return;
         }
         this.targetItem = findBestItem(level);
-        if (this.targetItem == null) {
+        if (this.targetItem == null || !this.targetItem.isAlive()) {
             return;
         }
         ItemStack itemStack = this.targetItem.getItem().copy();
