@@ -104,7 +104,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     private void registerAdultGoals() {
-        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.INSTANCE, SwarmDistressGoal.Mode.SWARM);
+        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.get(this.level()), SwarmDistressGoal.Mode.SWARM);
         this.goalSelector.addGoal(0, this.swarmGoal);
         this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
@@ -295,6 +295,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     public AgeableMob getBreedOffspring(ServerLevel serverLevel, AgeableMob ageableMob) {
+        // BY DESIGN: Crow breeding is handled entirely through the CrowNest block entity,
+        // not the vanilla breeding mechanic. Eggs are laid in nests and hatch there.
         return null;
     }
 

@@ -76,7 +76,7 @@ public class SwarmDistressGoal extends Goal {
 
         if (this.mode == Mode.RETALIATION) {
             return this.swarmManager.isInRetaliation(
-                this.crow.level(), this.crow.getId(), this.crow.level().getGameTime()
+                this.crow.getId(), this.crow.level().getGameTime()
             );
         }
 
@@ -97,7 +97,7 @@ public class SwarmDistressGoal extends Goal {
 
         if (this.mode == Mode.RETALIATION) {
             return this.swarmManager.isInRetaliation(
-                this.crow.level(), this.crow.getId(), this.crow.level().getGameTime()
+                this.crow.getId(), this.crow.level().getGameTime()
             );
         }
 
@@ -185,16 +185,11 @@ public class SwarmDistressGoal extends Goal {
         }
 
         long currentTick = this.crow.level().getGameTime();
-        boolean canHurt = false;
 
         if (this.crow.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            if (this.target instanceof Entity) {
-                canHurt = this.crow.doHurtTarget(serverLevel, this.target);
+            if (this.crow.doHurtTarget(serverLevel, this.target)) {
+                this.lastHitTime = currentTick;
             }
-        }
-
-        if (canHurt) {
-            this.lastHitTime = currentTick;
         }
     }
 

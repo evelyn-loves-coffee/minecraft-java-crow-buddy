@@ -41,19 +41,19 @@ public class CrowEventHub {
     }
 
     private static void handleCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
-        SwarmManager.INSTANCE.onCrowDamaged(crow, source, amount);
+        SwarmManager.get(crow.level()).onCrowDamaged(crow, source, amount);
     }
 
     private static void handleNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
-        SwarmManager.INSTANCE.onNonCrowDamaged(entity, source);
+        SwarmManager.get(entity.level()).onNonCrowDamaged(entity, source);
     }
 
     private static void handlePlayerAttackCrow(Player player, CrowEntity crow) {
-        SwarmManager.INSTANCE.onPlayerAttackCrow(player, crow);
+        SwarmManager.get(crow.level()).onPlayerAttackCrow(player, crow);
     }
 
     private static void handlePlayerAttackTarget(Player player, Entity target) {
-        SwarmManager.INSTANCE.onPlayerAttackTarget(player, target);
+        SwarmManager.get(player.level()).onPlayerAttackTarget(player, target);
     }
 
     private static void log(String msg) {
