@@ -97,7 +97,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
 
         if (this.isBaby()) {
-            this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
+            this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
         } else {
             registerAdultGoals();
         }
@@ -106,10 +106,10 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private void registerAdultGoals() {
         this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.INSTANCE, SwarmDistressGoal.Mode.SWARM);
         this.goalSelector.addGoal(0, this.swarmGoal);
-        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.TemptGoal(
+        this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
         this.scavengeGoal = new ScavengeGoal(this);
-        this.goalSelector.addGoal(3, this.scavengeGoal);
+        this.goalSelector.addGoal(4, this.scavengeGoal);
     }
 
     @Override
@@ -285,8 +285,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         double dy = (owner.getY() + owner.getBbHeight() / 2.0) - this.getY();
         double distSq = dx * dx + dy * dy + dz * dz;
         if (distSq > 0.25) {
-            double speed = Math.min(Math.sqrt(distSq) * 0.5, 0.3);
             double dist = Math.sqrt(distSq);
+            double speed = Math.min(dist * 0.5, 0.3);
             this.setDeltaMovement(
                 this.getDeltaMovement().add(dx / dist * speed, dy / dist * speed, dz / dist * speed)
             );

@@ -45,6 +45,9 @@ public class SwarmDistressGoal extends Goal {
     // Public setters for external state updates
     public void setTarget(LivingEntity target) {
         this.target = target;
+        if (target instanceof Player) {
+            this.lastHitTime = this.crow.level().getGameTime();
+        }
     }
 
     public LivingEntity getTarget() {
@@ -73,7 +76,7 @@ public class SwarmDistressGoal extends Goal {
 
         if (this.mode == Mode.RETALIATION) {
             return this.swarmManager.isInRetaliation(
-                this.crow.getId(), this.crow.level().getGameTime()
+                this.crow.level(), this.crow.getId(), this.crow.level().getGameTime()
             );
         }
 
@@ -94,7 +97,7 @@ public class SwarmDistressGoal extends Goal {
 
         if (this.mode == Mode.RETALIATION) {
             return this.swarmManager.isInRetaliation(
-                this.crow.getId(), this.crow.level().getGameTime()
+                this.crow.level(), this.crow.getId(), this.crow.level().getGameTime()
             );
         }
 
