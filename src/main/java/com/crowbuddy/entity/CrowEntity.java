@@ -48,12 +48,22 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> STATE =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.INT);
+
+    private static final int STATE_ID = 0;
+    private static final int STATE_SEARCHING = 1;
+    private static final int STATE_CARRYING = 2;
+    private static final int STATE_COMBAT = 3;
+    private static final int STATE_DISTRESS = 4;
+    private static final int STATE_SWARM = 5;
+    private static final int STATE_NESTING = 6;
     private static final EntityDataAccessor<ItemStack> CARRIED_ITEM =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.ITEM_STACK);
     private static final EntityDataAccessor<Float> SATIATION =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> RELATIONSHIP =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> IN_MATING_STATE =
+        SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.BOOLEAN);
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private ScavengeGoal scavengeGoal;
@@ -72,11 +82,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     protected void registerGoals() {
-        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.INSTANCE, SwarmDistressGoal.Mode.SWARM);
-        this.goalSelector.addGoal(0, this.swarmGoal);
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.TemptGoal(
-            this, 1.25, itemStack -> this.isFood(itemStack), false));
+        this.goalSelector.addGoal(1, new com.crowbuddy.entity.ai.goal.CrowNestSeekGoal(this, 1.0, 1200));
         final CrowEntity self = this;
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
             this, 1.0, 6.0f, 10.0f) {
@@ -85,21 +92,35 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
                 return !self.isPerched() && super.canUse();
             }
         });
-        this.scavengeGoal = new ScavengeGoal(this);
-        this.goalSelector.addGoal(3, this.scavengeGoal);
         this.goalSelector.addGoal(4, new RandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 6.0f));
         this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
+
+        if (this.isBaby()) {
+            this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
+        } else {
+            registerAdultGoals();
+        }
+    }
+
+    private void registerAdultGoals() {
+        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.INSTANCE, SwarmDistressGoal.Mode.SWARM);
+        this.goalSelector.addGoal(0, this.swarmGoal);
+        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.TemptGoal(
+            this, 1.25, itemStack -> this.isFood(itemStack), false));
+        this.scavengeGoal = new ScavengeGoal(this);
+        this.goalSelector.addGoal(3, this.scavengeGoal);
     }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(PERCHED, false);
-        builder.define(STATE, CrowState.IDLE.ordinal());
+        builder.define(STATE, CrowState.IDLE.stateId());
         builder.define(CARRIED_ITEM, ItemStack.EMPTY);
         builder.define(SATIATION, 1.0f);
         builder.define(RELATIONSHIP, 0.0f);
+        builder.define(IN_MATING_STATE, false);
     }
 
     public void setPerched(boolean perched) {
@@ -111,13 +132,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     public void setState(CrowState state) {
-        this.entityData.set(STATE, state.ordinal());
+        this.entityData.set(STATE, state.stateId());
     }
 
     public CrowState getState() {
-        int ordinal = this.entityData.get(STATE);
-        CrowState[] states = CrowState.values();
-        return ordinal >= 0 && ordinal < states.length ? states[ordinal] : CrowState.IDLE;
+        int id = this.entityData.get(STATE);
+        return CrowState.fromStateId(id);
     }
 
     public void setCarriedItem(ItemStack itemStack) {
@@ -145,6 +165,14 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         return this.entityData.get(RELATIONSHIP);
     }
 
+    public void setInMatingState(boolean inMatingState) {
+        this.entityData.set(IN_MATING_STATE, inMatingState);
+    }
+
+    public boolean isInMatingState() {
+        return this.entityData.get(IN_MATING_STATE);
+    }
+
     public LivingEntity getOwner() {
         return net.minecraft.world.entity.EntityReference.getLivingEntity(
             this.getOwnerReference(), this.level());
@@ -156,6 +184,9 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     public boolean wantsToAttack(LivingEntity other, LivingEntity target) {
+        if (this.isBaby()) {
+            return false;
+        }
         if (super.wantsToAttack(other, target)) {
             return true;
         }
@@ -206,7 +237,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     @Override
-    public void tame(net.minecraft.world.entity.player.Player player) {
+    public void tame(Player player) {
         super.tame(player);
         this.setSatiation(1.0f);
     }
@@ -265,6 +296,26 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     public AgeableMob getBreedOffspring(ServerLevel serverLevel, AgeableMob ageableMob) {
         return null;
+    }
+
+    @Override
+    public boolean canFallInLove() {
+        return this.isTame() && !this.isBaby();
+    }
+
+    @Override
+    public void spawnChildFromBreeding(ServerLevel serverLevel, net.minecraft.world.entity.animal.Animal other) {
+        this.setInLoveTime(0);
+        this.setInMatingState(true);
+        if (other instanceof CrowEntity otherCrow) {
+            otherCrow.setInLoveTime(0);
+            otherCrow.setInMatingState(true);
+        }
+        serverLevel.sendParticles(
+            net.minecraft.core.particles.ParticleTypes.HEART,
+            this.getX(), this.getY() + 0.5, this.getZ(),
+            7, 0.0, 0.1, 0.0, 0.0
+        );
     }
 
     @Override

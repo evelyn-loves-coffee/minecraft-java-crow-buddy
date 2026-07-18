@@ -1,0 +1,13 @@
+{
+  "feature": "crowbuddy:crow_nest",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 40
+    },
+    {
+      "type": "minecraft:count",
+      "count": 2
+    }
+  ]
+}

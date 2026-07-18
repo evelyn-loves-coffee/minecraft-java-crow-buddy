@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "crowbuddy:block/crow_nest"
+    }
+  }
+}
