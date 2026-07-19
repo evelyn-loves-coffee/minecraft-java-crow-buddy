@@ -7,6 +7,10 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+
+import java.lang.reflect.Field;
+import java.util.Map;
 
 public class ModEntities {
 	public static final EntityType<CrowEntity> CROW = EntityType.Builder.<CrowEntity>of(CrowEntity::new, MobCategory.CREATURE)
@@ -18,5 +22,22 @@ public class ModEntities {
 	public static void register() {
 		CrowBuddy.LOGGER.info("Registering Entities for " + CrowBuddy.MOD_ID);
 		net.minecraft.core.Registry.register(BuiltInRegistries.ENTITY_TYPE, CrowBuddy.id("crow"), CROW);
+		registerAttributes();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void registerAttributes() {
+		AttributeSupplier supplier = CrowEntity.createAttributes().build();
+		try {
+			Field suppliersField = Class.forName("net.minecraft.world.entity.ai.attributes.DefaultAttributes")
+					.getDeclaredField("SUPPLIERS");
+			suppliersField.setAccessible(true);
+			Map<EntityType<?>, AttributeSupplier> existing = (Map<EntityType<?>, AttributeSupplier>) suppliersField.get(null);
+			Map<EntityType<?>, AttributeSupplier> updated = new java.util.HashMap<>(existing);
+			updated.put(CROW, supplier);
+			suppliersField.set(null, updated);
+		} catch (Exception e) {
+			CrowBuddy.LOGGER.error("Failed to register attributes for crow", e);
+		}
 	}
 }

@@ -1,8 +1,11 @@
 package com.crowbuddy.block;
 
+import com.crowbuddy.CrowBuddy;
 import com.crowbuddy.block.entity.CrowNestBlockEntity;
 import com.crowbuddy.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SoundType;
@@ -24,6 +27,8 @@ public class CrowNestBlock extends net.minecraft.world.level.block.Block impleme
                 .noOcclusion()
                 .sound(SoundType.WOOD)
                 .mapColor(MapColor.WOOD)
+                .noLootTable()
+                .setId(ResourceKey.create(Registries.BLOCK, CrowBuddy.id("crow_nest")))
         );
     }
 
