@@ -10,8 +10,8 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class CrowNestBlockItem extends BlockItem {
-    public CrowNestBlockItem(CrowNestBlock block) {
-        super(block, new Item.Properties());
+    public CrowNestBlockItem(CrowNestBlock block, Item.Properties properties) {
+        super(block, properties);
     }
 
     @Override
