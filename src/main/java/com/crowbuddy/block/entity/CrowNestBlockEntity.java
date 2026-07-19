@@ -1,7 +1,9 @@
 package com.crowbuddy.block.entity;
 
+import com.crowbuddy.sound.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -45,6 +47,10 @@ public class CrowNestBlockEntity extends BlockEntity {
     public void startIncubation() {
         this.stateMachine.startIncubation();
         this.setChanged();
+        if (this.level != null && !this.level.isClientSide()) {
+            this.level.playSound(null, this.getBlockPos(), ModSounds.CROW_EGG_LAY,
+                SoundSource.NEUTRAL, 0.5f, 1.0f);
+        }
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, CrowNestBlockEntity be) {
@@ -67,6 +73,8 @@ public class CrowNestBlockEntity extends BlockEntity {
         }
         switch (this.stateMachine.getLastSideEffect()) {
             case EGGS_TO_HATCHING -> {
+                serverLevel.playSound(null, pos, ModSounds.CROW_HATCH,
+                    SoundSource.NEUTRAL, 0.5f, 1.0f);
                 serverLevel.sendParticles(
                         net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
                         pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5,
@@ -77,6 +85,8 @@ public class CrowNestBlockEntity extends BlockEntity {
                 if (!this.stateMachine.isBabySpawned()) {
                     this.spawnBabyCrow(serverLevel, pos);
                 }
+                serverLevel.playSound(null, pos, ModSounds.CROW_FLEDGLING,
+                    SoundSource.NEUTRAL, 0.5f, 1.0f);
                 serverLevel.sendParticles(
                         net.minecraft.core.particles.ParticleTypes.CRIT,
                         pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5,
@@ -84,6 +94,8 @@ public class CrowNestBlockEntity extends BlockEntity {
                 );
             }
             case BABY_FLYING_TO_IDLE -> {
+                serverLevel.playSound(null, pos, ModSounds.CROW_BABY_FLIGHT,
+                    SoundSource.NEUTRAL, 0.5f, 1.0f);
                 serverLevel.sendParticles(
                         net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING,
                         pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5,
