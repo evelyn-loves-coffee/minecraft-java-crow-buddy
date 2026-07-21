@@ -11,7 +11,8 @@ public final class CrowGeoModel extends GeoModel<CrowEntity> {
     private static final Identifier MODEL = CrowBuddy.id("entity/crow");
     private static final Identifier MODEL_BABY = CrowBuddy.id("entity/crow_baby");
     private static final Identifier ANIMATIONS = CrowBuddy.id("entity/crow");
-    private static final Identifier TEXTURE = CrowBuddy.id("textures/entity/crow");
+    private static final Identifier TEXTURE_ADULT = CrowBuddy.id("textures/entity/crow");
+    private static final Identifier TEXTURE_BABY = CrowBuddy.id("textures/entity/crow_baby");
     private static final DataTicket<Boolean> IS_BABY = DataTicket.create("is_baby", Boolean.class);
 
     @Override
@@ -27,7 +28,8 @@ public final class CrowGeoModel extends GeoModel<CrowEntity> {
 
     @Override
     public Identifier getTextureResource(GeoRenderState renderState) {
-        return TEXTURE;
+        Boolean isBaby = renderState.getOrDefaultGeckolibData(IS_BABY, false);
+        return isBaby ? TEXTURE_BABY : TEXTURE_ADULT;
     }
 
     @Override

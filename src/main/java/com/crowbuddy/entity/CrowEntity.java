@@ -29,6 +29,7 @@ import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import com.crowbuddy.goal.ScavengeGoal;
 import com.crowbuddy.goal.SwarmDistressGoal;
@@ -225,6 +226,10 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return true;
         }
         return false;
+    }
+
+    public boolean isBreedingItem(ItemStack itemStack) {
+        return isFood(itemStack) || itemStack.is(Items.GOLDEN_DANDELION);
     }
 
     public static boolean isPoisonousFood(ItemStack itemStack) {

@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -129,7 +129,8 @@ public class SwarmManager {
     }
 
     public void onCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
-        if (!crow.getCarriedItem().isEmpty()) {
+        ItemStack carriedItem = crow.getCarriedItem();
+        if (carriedItem != null && !carriedItem.isEmpty()) {
             crow.dropCarriedItem();
         }
 
