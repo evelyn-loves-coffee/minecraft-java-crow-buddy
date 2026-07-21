@@ -1,7 +1,7 @@
 {
   "format_version": "1.8.0",
   "animations": {
-    "animation.adult_crow.idle": {
+    "idle": {
       "loop": true,
       "animation_length": 4.0,
       "bones": {
@@ -93,7 +93,7 @@
         }
       }
     },
-    "animation.adult_crow.walk": {
+    "walk": {
       "loop": true,
       "animation_length": 0.6,
       "bones": {
@@ -221,7 +221,7 @@
         }
       }
     },
-    "animation.adult_crow.hop": {
+    "hop": {
       "loop": false,
       "animation_length": 0.6,
       "bones": {
@@ -341,7 +341,7 @@
         }
       }
     },
-    "animation.adult_crow.takeoff": {
+    "takeoff": {
       "loop": false,
       "animation_length": 0.7,
       "bones": {
@@ -469,7 +469,7 @@
         }
       }
     },
-    "animation.adult_crow.fly": {
+    "fly": {
       "loop": true,
       "animation_length": 0.55,
       "bones": {
@@ -625,7 +625,7 @@
         }
       }
     },
-    "animation.adult_crow.glide": {
+    "glide": {
       "loop": true,
       "animation_length": 2.0,
       "bones": {
@@ -697,7 +697,7 @@
         }
       }
     },
-    "animation.adult_crow.land": {
+    "land": {
       "loop": false,
       "animation_length": 0.8,
       "bones": {
@@ -841,7 +841,7 @@
         }
       }
     },
-    "animation.adult_crow.peck": {
+    "peck": {
       "loop": false,
       "animation_length": 0.38,
       "bones": {
@@ -909,7 +909,7 @@
         }
       }
     },
-    "animation.adult_crow.caw": {
+    "caw": {
       "loop": false,
       "animation_length": 0.75,
       "bones": {
@@ -1006,7 +1006,7 @@
         }
       }
     },
-    "animation.adult_crow.preen": {
+    "preen": {
       "loop": false,
       "animation_length": 2.3,
       "bones": {

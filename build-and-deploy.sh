@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODS_DIR="~/Apps/Minecraft/instances/CrowBuddy/mods"
+MODS_DIR="/home/evelyn/Apps/Minecraft/instances/CrowBuddy/mods"
 
 cd "$SCRIPT_DIR"
 

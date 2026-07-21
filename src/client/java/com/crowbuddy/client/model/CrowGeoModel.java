@@ -8,12 +8,12 @@ import com.geckolib.renderer.base.GeoRenderState;
 import net.minecraft.resources.Identifier;
 
 public final class CrowGeoModel extends GeoModel<CrowEntity> {
-    private static final Identifier MODEL_ADULT = CrowBuddy.id("geckolib/models/entity/adult_crow");
-    private static final Identifier MODEL_BABY = CrowBuddy.id("geckolib/models/entity/crow_baby");
-    private static final Identifier ANIMATIONS_ADULT = CrowBuddy.id("geckolib/animations/entity/adult_crow");
-    private static final Identifier ANIMATIONS_BABY = CrowBuddy.id("geckolib/animations/entity/crow");
-    private static final Identifier TEXTURE_ADULT = CrowBuddy.id("textures/entity/adult_crow");
-    private static final Identifier TEXTURE_BABY = CrowBuddy.id("textures/entity/crow");
+    private static final Identifier MODEL_ADULT = CrowBuddy.id("entity/adult_crow");
+    private static final Identifier MODEL_BABY = CrowBuddy.id("entity/crow_baby");
+    private static final Identifier ANIMATIONS_ADULT = CrowBuddy.id("entity/adult_crow");
+    private static final Identifier ANIMATIONS_BABY = CrowBuddy.id("entity/crow");
+    private static final Identifier TEXTURE_ADULT = CrowBuddy.id("textures/entity/adult_crow.png");
+    private static final Identifier TEXTURE_BABY = CrowBuddy.id("textures/entity/crow.png");
     private static final DataTicket<Boolean> IS_BABY = DataTicket.create("is_baby", Boolean.class);
 
     @Override
