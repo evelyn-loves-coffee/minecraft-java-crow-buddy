@@ -1,0 +1,33 @@
+# black_oil_sunflower_seeds.png — Black Oil Sunflower Seeds Item Texture
+# Path: assets/crowbuddy/textures/item/black_oil_sunflower_seeds.png
+
+Dimensions: 16×16
+Format: PNG with alpha channel
+Transparency: REQUIRED — only the seeds are opaque
+
+Usage:
+  - Inventory item icon
+  - Dropped item entity
+  - Crafting grid display
+  - Crow food/breeding item
+
+Content:
+  A small pile or cluster of black oil sunflower seeds.
+
+  Suggested layout:
+  - 3-5 seeds arranged in a small cluster near center
+  - Seeds are small, oval, black with white stripes
+  - Seeds slightly overlapping, natural scattered arrangement
+
+Transparency:
+  - Everything outside the seed cluster must be fully transparent
+
+Color Notes:
+  - Seed body: black
+  - Stripes on seeds: white or light gray
+  - Keep it readable at 16×16 — simple shapes work best
+
+Notes:
+  - Used as crow food (isFood check in CrowEntity)
+  - Used as breeding trigger for crows
+  - Already exists in the resource pack (may need replacement)

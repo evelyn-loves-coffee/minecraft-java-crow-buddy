@@ -1,6 +1,7 @@
 {
   "item.crowbuddy.black_oil_sunflower_seeds": "Black Oil Sunflower Seeds",
   "item.crowbuddy.black_feather": "Black Feather",
+  "item.crowbuddy.crow_spawn_egg": "Spawn Crow",
   "entity.crowbuddy.crow": "Crow",
   "block.crowbuddy.crow_nest": "Crow Nest"
 }

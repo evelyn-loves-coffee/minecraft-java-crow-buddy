@@ -19,7 +19,7 @@ public class CrowEventHub {
         AttackEntityCallback.EVENT.register(CrowEventHub::onPlayerAttackEntity);
     }
 
-    private static void onEntityDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source, float amount, float knockback, boolean isDirect) {
+    static void onEntityDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source, float amount, float knockback, boolean isDirect) {
         if (!entity.level().isClientSide()) {
             if (entity instanceof CrowEntity crow) {
                 handleCrowDamaged(crow, source, amount);
@@ -29,7 +29,7 @@ public class CrowEventHub {
         }
     }
 
-    private static InteractionResult onPlayerAttackEntity(Player player, Level level, net.minecraft.world.InteractionHand hand, Entity target, EntityHitResult hitResult) {
+    static InteractionResult onPlayerAttackEntity(Player player, Level level, net.minecraft.world.InteractionHand hand, Entity target, EntityHitResult hitResult) {
         if (!level.isClientSide()) {
             if (target instanceof CrowEntity crow) {
                 handlePlayerAttackCrow(player, crow);
@@ -40,19 +40,19 @@ public class CrowEventHub {
         return InteractionResult.PASS;
     }
 
-    private static void handleCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
+    static void handleCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
         SwarmManager.get(crow.level()).onCrowDamaged(crow, source, amount);
     }
 
-    private static void handleNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
+    static void handleNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
         SwarmManager.get(entity.level()).onNonCrowDamaged(entity, source);
     }
 
-    private static void handlePlayerAttackCrow(Player player, CrowEntity crow) {
+    static void handlePlayerAttackCrow(Player player, CrowEntity crow) {
         SwarmManager.get(crow.level()).onPlayerAttackCrow(player, crow);
     }
 
-    private static void handlePlayerAttackTarget(Player player, Entity target) {
+    static void handlePlayerAttackTarget(Player player, Entity target) {
         SwarmManager.get(player.level()).onPlayerAttackTarget(player, target);
     }
 

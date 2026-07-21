@@ -1,0 +1,16 @@
+# icon.png — Mod Icon
+# Path: assets/crowbuddy/icon.png
+
+Dimensions: 256×256
+Format: PNG with alpha channel
+Transparency: None (solid background)
+
+Content:
+  A stylized crow illustration or logo representing the "Crow Buddy" mod.
+  Should be recognizable at small sizes (64×64 and smaller) since it will
+  be displayed in mod loaders, CurseForge, ModMenu, etc.
+
+Notes:
+  - Square aspect ratio required
+  - Keep the main subject centered
+  - Avoid fine detail that won't read at thumbnail sizes
