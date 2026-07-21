@@ -1,7 +1,7 @@
 {
   "format_version": "1.8.0",
   "animations": {
-    "animation.baby_crow.idle": {
+    "idle": {
       "loop": true,
       "animation_length": 3.2,
       "bones": {
@@ -189,7 +189,7 @@
         }
       }
     },
-    "animation.baby_crow.walk": {
+    "walk": {
       "loop": true,
       "animation_length": 0.46,
       "bones": {
@@ -317,7 +317,7 @@
         }
       }
     },
-    "animation.baby_crow.hop": {
+    "hop": {
       "loop": false,
       "animation_length": 0.48,
       "bones": {
@@ -475,7 +475,7 @@
         }
       }
     },
-    "animation.baby_crow.takeoff": {
+    "takeoff": {
       "loop": false,
       "animation_length": 0.62,
       "bones": {
@@ -613,7 +613,7 @@
         }
       }
     },
-    "animation.baby_crow.fly": {
+    "fly": {
       "loop": true,
       "animation_length": 0.38,
       "bones": {
@@ -769,7 +769,7 @@
         }
       }
     },
-    "animation.baby_crow.glide": {
+    "glide": {
       "loop": true,
       "animation_length": 1.4,
       "bones": {
@@ -880,7 +880,7 @@
         }
       }
     },
-    "animation.baby_crow.land": {
+    "land": {
       "loop": false,
       "animation_length": 0.68,
       "bones": {
@@ -1018,7 +1018,7 @@
         }
       }
     },
-    "animation.baby_crow.peck": {
+    "peck": {
       "loop": false,
       "animation_length": 0.32,
       "bones": {
@@ -1086,7 +1086,7 @@
         }
       }
     },
-    "animation.baby_crow.beg": {
+    "beg": {
       "loop": true,
       "animation_length": 0.72,
       "bones": {
@@ -1227,7 +1227,7 @@
         }
       }
     },
-    "animation.baby_crow.caw": {
+    "caw": {
       "loop": false,
       "animation_length": 0.58,
       "bones": {
@@ -1343,7 +1343,7 @@
         }
       }
     },
-    "animation.baby_crow.preen": {
+    "preen": {
       "loop": false,
       "animation_length": 1.75,
       "bones": {
@@ -1504,7 +1504,7 @@
         }
       }
     },
-    "animation.baby_crow.sleep": {
+    "sleep": {
       "loop": true,
       "animation_length": 3.6,
       "bones": {

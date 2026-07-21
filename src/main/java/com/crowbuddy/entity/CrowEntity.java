@@ -1,5 +1,6 @@
 package com.crowbuddy.entity;
 
+import com.crowbuddy.CrowBuddy;
 import com.geckolib.animatable.GeoAnimatable;
 import com.geckolib.animatable.instance.AnimatableInstanceCache;
 import com.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -35,6 +36,7 @@ import net.minecraft.world.phys.Vec3;
 import com.crowbuddy.goal.CrowFlightGoal;
 import com.crowbuddy.goal.ScavengeGoal;
 import com.crowbuddy.goal.SwarmDistressGoal;
+import com.crowbuddy.item.ModItems;
 import com.crowbuddy.swarm.SwarmManager;
 
 public class CrowEntity extends TamableAnimal implements GeoAnimatable {
@@ -97,7 +99,9 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         return TamableAnimal.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 10.0)
             .add(Attributes.MOVEMENT_SPEED, 0.25)
-            .add(Attributes.FOLLOW_RANGE, 24.0);
+            .add(Attributes.FOLLOW_RANGE, 24.0)
+            .add(Attributes.TEMPT_RANGE, 3.0)
+            .add(Attributes.ATTACK_DAMAGE, 2.0);
     }
 
     @Override
@@ -309,7 +313,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         if (isInTag(item, PARROT_POISONOUS)) {
             return false;
         }
-        if (item == com.crowbuddy.item.ModItems.BLACK_OIL_SUNFLOWER_SEEDS) {
+        if (item == ModItems.BLACK_OIL_SUNFLOWER_SEEDS) {
             return true;
         }
         if (isInTag(item, PARROT_FOOD)) {
@@ -359,6 +363,10 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         super.tick();
         if (this.level().isClientSide()) {
             return;
+        }
+        float satiation = this.getSatiation();
+        if (satiation > 0.0f) {
+            this.setSatiation(satiation - 0.0005f);
         }
         if (this.isInSittingPose()) {
             this.setDeltaMovement(this.getDeltaMovement().multiply(0.5, 0.25, 0.5));
