@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "crowbuddy:item/crow_spawn_egg"
+  }
+}
