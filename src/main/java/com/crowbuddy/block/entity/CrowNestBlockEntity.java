@@ -112,6 +112,7 @@ public class CrowNestBlockEntity extends BlockEntity {
         baby.setPos(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5);
         baby.setBaby(true);
         baby.setAge(net.minecraft.world.entity.AgeableMob.BABY_START_AGE);
+        baby.setHomeNestPos(pos);
         serverLevel.levelEvent(1082, pos, 0);
         serverLevel.addFreshEntity(baby);
     }
