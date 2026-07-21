@@ -5,10 +5,10 @@
 	"name": "Crow Buddy",
 	"description": "A vanilla-plus mod adding a tameable crow entity.",
 	"authors": [
-		"Crow Buddy Team"
+		"evelyn-loves-coffee"
 	],
 	"contact": {
-		"homepage": "https://github.com/anomalyco/opencode"
+		"homepage": "https://github.com/evelyn-loves-coffee/minecraft-java-crow-buddy"
 	},
 	"license": "MIT",
 	"icon": "assets/crowbuddy/icon.png",
