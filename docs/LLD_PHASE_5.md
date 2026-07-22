@@ -24,3 +24,14 @@ The checked-in `.ogg` files remained placeholders. Candidate source links were r
 
 - Automated verification used `./gradlew clean build --warning-mode all`.
 - In-game verification was designed to cover model rendering, sound timing, parent travel, hatch removal, and trampling.
+
+## 4. PAWS Verification
+
+| Pillar | Phase 5 rule |
+|---|---|
+| Performance | Rendering switched on the compact nest stage and submitted stage-specific geometry without adding server tick work. |
+| Auditability | Sound events were centralized, mapped to explicit lifecycle transitions, and documented when registered without a trigger. |
+| Workability | Client rendering remained isolated from common code, and automated verification covered 29 tests without failures. |
+| Scalability | Entity models, nest rendering, sound registration, and lifecycle effects remained separate and independently replaceable. |
+
+The phase required a clean build with deprecation linting and retained manual in-game checks for visual and audio behavior.

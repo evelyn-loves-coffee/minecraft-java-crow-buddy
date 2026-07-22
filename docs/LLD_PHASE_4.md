@@ -30,3 +30,14 @@ Legacy saved post-hatch stages were designed to be removed on their next server 
 - Non-careful walking received a 1-in-100 break chance, while landing received a 1-in-3 chance.
 - Players and living mobs could trample nests; crows and sneaking entities could not.
 - Mob trampling respected `mobGriefing`, while player trampling did not.
+
+## 5. PAWS Verification
+
+| Pillar | Phase 4 rule |
+|---|---|
+| Performance | Canopy discovery used a bounded `O(r²)` heightmap search and retried no more frequently than every 100 ticks. |
+| Auditability | Nest construction, timeout, and trampling paths emitted debug logs, while lifecycle stages persisted explicit IDs and timers. |
+| Workability | Placement was revalidated on arrival, hatch spawning retried after failure, and legacy post-hatch stages were removed without duplicate babies. |
+| Scalability | `#minecraft:leaves` enabled data-driven foliage compatibility, and nest placement remained isolated in one AI goal. |
+
+Verification covered lifecycle edge cases, trample eligibility, leaf-support behavior, natural crow spawning, and the absence of nest world generation.
