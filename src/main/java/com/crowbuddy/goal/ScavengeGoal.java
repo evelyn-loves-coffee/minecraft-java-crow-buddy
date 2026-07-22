@@ -2,6 +2,7 @@ package com.crowbuddy.goal;
 
 import com.crowbuddy.entity.CrowEntity;
 import com.crowbuddy.entity.CrowState;
+import com.crowbuddy.entity.CrowBehaviorPolicy;
 import com.crowbuddy.networking.ModNetworking;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -32,16 +33,19 @@ public class ScavengeGoal extends Goal {
 
     private final CrowEntity crow;
     private ItemEntity targetItem;
-    private int cooldownTimer;
+    private long nextSearchTick;
 
     public ScavengeGoal(CrowEntity crow) {
         this.crow = crow;
-        this.cooldownTimer = 0;
+        this.nextSearchTick = 0;
     }
 
     @Override
     public boolean canUse() {
-        if (this.crow.isInSittingPose() || this.crow.isPerched()) {
+        if (this.crow.isBaby()) {
+            return false;
+        }
+        if (this.crow.isInSittingPose()) {
             return false;
         }
         if (!this.crow.getCarriedItem().isEmpty()) {
@@ -50,7 +54,7 @@ public class ScavengeGoal extends Goal {
         if (this.crow.getState() != CrowState.IDLE) {
             return false;
         }
-        if (this.cooldownTimer > 0) {
+        if (this.crow.level().getGameTime() < this.nextSearchTick) {
             return false;
         }
         float satiation = this.crow.getSatiation();
@@ -68,6 +72,7 @@ public class ScavengeGoal extends Goal {
         }
         this.targetItem = findBestItem(level);
         if (this.targetItem == null || !this.targetItem.isAlive()) {
+            this.nextSearchTick = this.crow.level().getGameTime() + reducedTickDelay(20);
             return;
         }
         ItemStack itemStack = this.targetItem.getItem().copy();
@@ -164,14 +169,8 @@ public class ScavengeGoal extends Goal {
     }
 
     private void temporaryCooldown() {
-        float satiation = this.crow.getSatiation();
-        if (satiation >= 0.8f) {
-            this.cooldownTimer = reducedTickDelay(1200);
-        } else if (satiation >= 0.5f) {
-            this.cooldownTimer = reducedTickDelay(4800);
-        } else {
-            this.cooldownTimer = reducedTickDelay(9600);
-        }
+        int delay = CrowBehaviorPolicy.scavengeCooldownTicks(this.crow.getSatiation());
+        this.nextSearchTick = this.crow.level().getGameTime() + reducedTickDelay(delay);
     }
 
     private void broadcastScavenge(ItemStack carriedItem) {
@@ -179,13 +178,6 @@ public class ScavengeGoal extends Goal {
             for (ServerPlayer player : serverLevel.players()) {
                 ModNetworking.sendScavenge(player, this.crow.getId(), carriedItem);
             }
-        }
-    }
-
-    @Override
-    public void tick() {
-        if (this.cooldownTimer > 0) {
-            --this.cooldownTimer;
         }
     }
 

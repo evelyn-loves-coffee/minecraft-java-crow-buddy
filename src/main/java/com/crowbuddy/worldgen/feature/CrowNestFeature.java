@@ -3,13 +3,15 @@ package com.crowbuddy.worldgen.feature;
 import com.crowbuddy.registry.ModBlocks;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CrowNestFeature extends Feature<NoneFeatureConfiguration> {
 
@@ -26,20 +28,29 @@ public class CrowNestFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
-        if (!level.getBlockState(origin).is(BlockTags.LOGS)) {
-            return false;
-        }
-
-        Direction randomDirection = Direction.Plane.HORIZONTAL.getRandomDirection(context.random());
-        BlockPos targetPos = origin.relative(randomDirection);
-
-        BlockState targetState = level.getBlockState(targetPos);
-        if (!targetState.isAir() && !targetState.is(BlockTags.REPLACEABLE)) {
-            return false;
-        }
-
+        // The origin is a surface sample, not necessarily a log. Exhaustively inspect the
+        // bounded canopy volume so placement does not depend on a few lucky random probes.
+        List<BlockPos> validTargets = new ArrayList<>();
         BlockState nestState = ModBlocks.CROW_NEST.defaultBlockState();
-        setBlock(level, targetPos, nestState);
+        for (int x = -5; x <= 5; x++) {
+            for (int z = -5; z <= 5; z++) {
+                for (int y = 0; y >= -12; y--) {
+                    BlockPos supportPos = origin.offset(x, y, z);
+                    BlockPos targetPos = supportPos.above();
+                    BlockState targetState = level.getBlockState(targetPos);
+                    if (level.getBlockState(supportPos).is(BlockTags.LOGS)
+                            && (targetState.isAir() || targetState.is(BlockTags.REPLACEABLE))
+                            && nestState.canSurvive(level, targetPos)) {
+                        validTargets.add(targetPos.immutable());
+                        break;
+                    }
+                }
+            }
+        }
+        if (validTargets.isEmpty()) return false;
+
+        BlockPos target = validTargets.get(context.random().nextInt(validTargets.size()));
+        setBlock(level, target, nestState);
         return true;
     }
 }

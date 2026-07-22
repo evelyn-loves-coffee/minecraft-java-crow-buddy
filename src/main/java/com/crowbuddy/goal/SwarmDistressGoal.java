@@ -11,6 +11,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import java.util.EnumSet;
 
 public class SwarmDistressGoal extends Goal {
 
@@ -18,6 +19,9 @@ public class SwarmDistressGoal extends Goal {
     private static final double ATTACK_RANGE_SQ = 1.5 * 1.5;
     private static final long PLAYER_WINDOW_TICKS = 80;
     private static final long RETALIATION_DURATION = 40;
+    private static final int DISTRESS_LEAD_TICKS = 15;
+    private static final int MAX_ENGAGEMENT_TICKS = 200;
+    private static final int ATTACK_COOLDOWN_TICKS = 10;
 
     public enum Mode {
         RETALIATION,
@@ -32,6 +36,7 @@ public class SwarmDistressGoal extends Goal {
     private long tickTimer;
     private long lastHitTime;
     private long swarmStartTime;
+    private long nextAttackTick;
 
     public SwarmDistressGoal(CrowEntity crow, SwarmManager swarmManager, Mode mode) {
         this.crow = crow;
@@ -40,6 +45,7 @@ public class SwarmDistressGoal extends Goal {
         this.tickTimer = 0;
         this.lastHitTime = 0;
         this.swarmStartTime = 0;
+        this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     // Public setters for external state updates
@@ -64,10 +70,10 @@ public class SwarmDistressGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (this.crow.isInSittingPose()) {
+        if (this.crow.isBaby()) {
             return false;
         }
-        if (this.crow.isPerched()) {
+        if (this.crow.isInSittingPose()) {
             return false;
         }
         if (this.target == null || !this.target.isAlive()) {
@@ -85,10 +91,10 @@ public class SwarmDistressGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        if (this.crow.isInSittingPose()) {
+        if (this.crow.isBaby()) {
             return false;
         }
-        if (this.crow.isPerched()) {
+        if (this.crow.isInSittingPose()) {
             return false;
         }
         if (this.target == null || !this.target.isAlive()) {
@@ -101,7 +107,8 @@ public class SwarmDistressGoal extends Goal {
             );
         }
 
-        return this.checkTargetWindow();
+        return this.checkTargetWindow()
+            && this.crow.level().getGameTime() - this.swarmStartTime < MAX_ENGAGEMENT_TICKS;
     }
 
     private boolean checkTargetWindow() {
@@ -114,7 +121,7 @@ public class SwarmDistressGoal extends Goal {
 
     @Override
     public void start() {
-        this.crow.setState(CrowState.COMBAT);
+        this.crow.setState(CrowState.DISTRESS);
         this.tickTimer = 0;
         this.swarmStartTime = this.crow.level().getGameTime();
         if (this.target instanceof Player) {
@@ -141,6 +148,15 @@ public class SwarmDistressGoal extends Goal {
         }
 
         this.tickTimer++;
+
+        if (this.tickTimer <= DISTRESS_LEAD_TICKS) {
+            this.crow.getNavigation().stop();
+            this.crow.lookAt(this.target, 30.0f, 30.0f);
+            return;
+        }
+        if (this.crow.getState() != CrowState.COMBAT) {
+            this.crow.setState(CrowState.COMBAT);
+        }
 
         if (this.tickTimer % DISTRESS_SOUND_INTERVAL == 0) {
             playDistressSound();
@@ -185,6 +201,10 @@ public class SwarmDistressGoal extends Goal {
         }
 
         long currentTick = this.crow.level().getGameTime();
+        if (currentTick < this.nextAttackTick) {
+            return;
+        }
+        this.nextAttackTick = currentTick + ATTACK_COOLDOWN_TICKS;
 
         if (this.crow.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             if (this.crow.doHurtTarget(serverLevel, this.target)) {
