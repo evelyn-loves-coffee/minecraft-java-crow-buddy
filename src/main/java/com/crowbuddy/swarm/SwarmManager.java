@@ -61,6 +61,12 @@ public class SwarmManager {
         cooldowns.put(crowId, currentTick);
     }
 
+    public void clearCrowState(int crowId) {
+        cooldowns.remove(crowId);
+        retaliationTimers.remove(crowId);
+        escalationHistory.remove(crowId);
+    }
+
     public void checkRetaliation(int crowId, long currentTick) {
         Long rt = retaliationTimers.get(crowId);
         if (rt != null && (currentTick - rt) >= RETALIATION_TICKS) {
@@ -196,6 +202,9 @@ public class SwarmManager {
     }
 
     private void triggerSwarm(CrowEntity source, LivingEntity target) {
+        if (source.isInSittingPose() || source.isOrderedToSit()) {
+            return;
+        }
         Level level = source.level();
         long currentTick = level.getGameTime();
         setCooldown(source.getId(), currentTick);
@@ -277,6 +286,9 @@ public class SwarmManager {
 
         for (CrowEntity crow : nearbyCrows) {
             if (!crow.isTame()) {
+                continue;
+            }
+            if (crow.isInSittingPose() || crow.isOrderedToSit()) {
                 continue;
             }
             LivingEntity owner = crow.getOwner();

@@ -31,7 +31,5 @@ public class CrowBuddyClient implements ClientModInitializer {
                 output.prepend(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
             });
 
-        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.BUILDING_BLOCKS)
-            .register(output -> output.prepend(ModItems.CROW_NEST_ITEM));
     }
 }

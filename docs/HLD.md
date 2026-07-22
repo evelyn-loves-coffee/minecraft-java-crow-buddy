@@ -8,8 +8,8 @@ A vanilla-plus, tameable entity that shares flight and taming traits with parrot
 
 ### 2.1. Key Behavioral Pillars
 - **Sociality:** Crows exhibit swarm intelligence, responding to threats with coordinated distress and retaliation.
-- **Interactivity:** Through scavenging, nesting, sitting, and breeding, crows become an integral part of the player's ecosystem.
-- **Environmental Integration:** Procedural spawning and nesting ensure crows are a natural, visible presence in the world.
+- **Interactivity:** Through scavenging, neutral sitting, canopy nesting, and breeding, crows become an integral part of the player's ecosystem.
+- **Environmental Integration:** Crows spawn naturally, while breeding parents construct temporary nests on exposed leaf canopies.
 
 ## 3. Project Roadmap
 - **Phase 1: Dependency & Environment Setup** (Complete)

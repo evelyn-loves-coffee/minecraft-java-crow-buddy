@@ -28,20 +28,19 @@ public class CrowNestBlockEntity extends BlockEntity {
         super.saveAdditional(output);
         output.putInt("stage", this.stateMachine.getStage());
         output.putInt("ticksRemaining", this.stateMachine.getTicksRemaining());
-        output.putBoolean("babySpawned", this.stateMachine.isBabySpawned());
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         int loadedStage = input.getIntOr("stage", CrowNestStateMachine.STAGE_IDLE);
-        if (loadedStage >= CrowNestStateMachine.STAGE_IDLE && loadedStage <= CrowNestStateMachine.STAGE_BABY_FLYING) {
+        if (loadedStage >= CrowNestStateMachine.STAGE_IDLE
+                && loadedStage <= CrowNestStateMachine.LEGACY_STAGE_BABY_FLYING) {
             this.stateMachine.setStage(loadedStage);
         } else {
             this.stateMachine.setStage(CrowNestStateMachine.STAGE_IDLE);
         }
         this.stateMachine.setTicksRemaining(input.getIntOr("ticksRemaining", 0));
-        this.stateMachine.setBabySpawned(input.getBooleanOr("babySpawned", false));
     }
 
     public void startIncubation() {
@@ -55,6 +54,11 @@ public class CrowNestBlockEntity extends BlockEntity {
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, CrowNestBlockEntity be) {
+        if (!level.isClientSide()
+                && be.stateMachine.getStage() >= CrowNestStateMachine.LEGACY_STAGE_FLEDGLING) {
+            level.removeBlock(pos, false);
+            return;
+        }
         if (!level.isClientSide()) {
             be.syncEggAppearance();
         }
@@ -65,7 +69,9 @@ public class CrowNestBlockEntity extends BlockEntity {
             be.stateMachine.tick();
             if (be.stateMachine.isSideEffectTriggered()) {
                 be.advanceStage(level, pos);
-                be.setChanged();
+                if (level.getBlockEntity(pos) == be) {
+                    be.setChanged();
+                }
                 be.stateMachine.resetSideEffectTriggered();
             }
         }
@@ -97,9 +103,11 @@ public class CrowNestBlockEntity extends BlockEntity {
                         8, 0.3, 0.3, 0.3, 0.0
                 );
             }
-            case HATCHING_TO_FLEDGLING -> {
-                if (!this.stateMachine.isBabySpawned()) {
-                    this.spawnBabyCrow(serverLevel, pos);
+            case HATCH_COMPLETE -> {
+                if (!this.spawnBabyCrow(serverLevel, pos)) {
+                    this.stateMachine.setStage(CrowNestStateMachine.STAGE_HATCHING);
+                    this.stateMachine.setTicksRemaining(1);
+                    return;
                 }
                 serverLevel.playSound(null, pos, ModSounds.CROW_FLEDGLING,
                     SoundSource.NEUTRAL, 0.5f, 1.0f);
@@ -108,29 +116,21 @@ public class CrowNestBlockEntity extends BlockEntity {
                         pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5,
                         12, 0.4, 0.4, 0.4, 0.1
                 );
-            }
-            case BABY_FLYING_TO_IDLE -> {
-                serverLevel.playSound(null, pos, ModSounds.CROW_BABY_FLIGHT,
-                    SoundSource.NEUTRAL, 0.5f, 1.0f);
-                serverLevel.sendParticles(
-                        net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING,
-                        pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5,
-                        6, 0.3, 0.3, 0.3, 0.0
-                );
+                serverLevel.removeBlock(pos, false);
             }
             default -> {}
         }
     }
 
-    private void spawnBabyCrow(ServerLevel serverLevel, BlockPos pos) {
+    private boolean spawnBabyCrow(ServerLevel serverLevel, BlockPos pos) {
         com.crowbuddy.entity.CrowEntity baby = com.crowbuddy.registry.ModEntities.CROW.create(serverLevel, net.minecraft.world.entity.EntitySpawnReason.EVENT);
-        if (baby == null) return;
+        if (baby == null) return false;
         baby.setPos(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5);
         baby.setBaby(true);
         baby.setAge(net.minecraft.world.entity.AgeableMob.BABY_START_AGE);
-        baby.setHomeNestPos(pos);
+        if (!serverLevel.addFreshEntity(baby)) return false;
         serverLevel.levelEvent(1082, pos, 0);
-        serverLevel.addFreshEntity(baby);
+        return true;
     }
 
     public int getStage() {

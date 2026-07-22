@@ -58,7 +58,16 @@ public final class CrowBehaviorPolicy {
     }
 
     public static boolean canEnterLoveMode(boolean tame, boolean baby, int age,
-                                           boolean alreadyInLove, boolean availableNest) {
-        return tame && !baby && age == 0 && !alreadyInLove && availableNest;
+                                           boolean alreadyInLove, boolean buildSiteAvailable) {
+        return tame && !baby && age == 0 && !alreadyInLove && buildSiteAvailable;
+    }
+
+    public static boolean canTrampleNest(boolean steppingCarefully, boolean livingEntity,
+                                         boolean crow, boolean player, boolean mobGriefing) {
+        return !steppingCarefully && livingEntity && !crow && (player || mobGriefing);
+    }
+
+    public static boolean trampleRollSucceeds(int roll) {
+        return roll == 0;
     }
 }

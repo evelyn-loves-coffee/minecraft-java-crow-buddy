@@ -90,4 +90,16 @@ class CrowBehaviorPolicyTest {
         assertFalse(CrowBehaviorPolicy.canEnterLoveMode(true, false, 0, false, false));
         assertEquals(6000, CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS);
     }
+
+    @Test
+    void nestTramplingRequiresAnEligibleEntityAndSuccessfulRoll() {
+        assertTrue(CrowBehaviorPolicy.canTrampleNest(false, true, false, true, false));
+        assertTrue(CrowBehaviorPolicy.canTrampleNest(false, true, false, false, true));
+        assertFalse(CrowBehaviorPolicy.canTrampleNest(true, true, false, true, true));
+        assertFalse(CrowBehaviorPolicy.canTrampleNest(false, true, true, false, true));
+        assertFalse(CrowBehaviorPolicy.canTrampleNest(false, true, false, false, false));
+        assertFalse(CrowBehaviorPolicy.canTrampleNest(false, false, false, false, true));
+        assertTrue(CrowBehaviorPolicy.trampleRollSucceeds(0));
+        assertFalse(CrowBehaviorPolicy.trampleRollSucceeds(1));
+    }
 }
