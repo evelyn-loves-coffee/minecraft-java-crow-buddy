@@ -1,5 +1,7 @@
 # Crow Buddy: Phase 3 Low-Level Design (LLD)
 
+> Historical design record. Shoulder perching was removed after Phase 3; current behavior uses the inherited sitting pose. Refer to `README.md` and `HLD.md` for the current feature set.
+
 ## 1. Entity Implementation (Core Mechanics)
 
 ### 1.1. Entity Data (SynchedEntityData)

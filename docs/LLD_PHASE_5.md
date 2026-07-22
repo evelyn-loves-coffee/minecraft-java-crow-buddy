@@ -1,5 +1,7 @@
 # Crow Buddy: Low-Level Design — Phase 5 (Polishing & Verification)
 
+> Implementation status: complete. Automated build/tests pass; the in-game checks in `TEST_PLAN.md` remain manual. Custom `.ogg` files are placeholders until the planned audio in `SOUNDS.md` is sourced and licensed.
+
 ## 1. Scope
 
 Phase 5 delivers three client-side polish features and executes the verification plan:
@@ -259,7 +261,7 @@ Replace with actual registration call for nest renderer. Keep particle comment a
 | Check | Command | Pass Criteria |
 |-------|---------|---------------|
 | Compile | `./gradlew build` | Zero errors |
-| Unit tests | `./gradlew test` | All 8 test classes pass |
+| Unit tests | `./gradlew test` | All 5 test classes pass |
 | Jar generation | `./gradlew jar` | JAR produced in `build/libs/` |
 
 ### 5.2 Functional Verification (In-Game)

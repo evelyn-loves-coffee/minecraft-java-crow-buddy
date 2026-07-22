@@ -23,6 +23,6 @@ This document outlines the verification steps required to ensure compliance with
     * Verify compatibility with common world-gen mods via Block Tags.
 
 ## 3. Regression & Build
-* [ ] Full `./gradlew build` (no failures).
-* [ ] Linting and typecheck execution.
+* [x] Full `./gradlew build` (no failures; verified 2026-07-21).
+* [x] Java compilation with deprecation linting (verified 2026-07-21; two upstream Fabric renderer-registry warnings remain).
 * [ ] Verify all assets (`.geo.json`, `.animation.json`, `.png`, `.ogg`) are present in resources.
