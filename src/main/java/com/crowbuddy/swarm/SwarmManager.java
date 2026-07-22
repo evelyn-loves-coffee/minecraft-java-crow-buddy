@@ -85,6 +85,9 @@ public class SwarmManager {
             if (!crow.isAlive()) {
                 continue;
             }
+            if (crow.isBaby()) {
+                continue;
+            }
             if (source.distanceToSqr(crow) > SWARM_RADIUS_SQ) {
                 continue;
             }
@@ -101,7 +104,7 @@ public class SwarmManager {
     }
 
     public void activateSwarmMode(CrowEntity crow, LivingEntity target) {
-        if (crow.isInSittingPose()) {
+        if (crow.isBaby() || crow.isInSittingPose() || crow.getSwarmGoal() == null) {
             return;
         }
         crow.getSwarmGoal().setTarget(target);
@@ -129,6 +132,7 @@ public class SwarmManager {
     }
 
     public void onCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
+        if (crow.isBaby()) return;
         ItemStack carriedItem = crow.getCarriedItem();
         if (carriedItem != null && !carriedItem.isEmpty()) {
             crow.dropCarriedItem();
@@ -136,10 +140,6 @@ public class SwarmManager {
 
         Level level = crow.level();
         long currentTick = level.getGameTime();
-
-        if (isInCooldown(crow.getId(), currentTick)) {
-            return;
-        }
 
         LivingEntity attacker = source.getEntity() instanceof LivingEntity
             ? (LivingEntity) source.getEntity()
@@ -150,6 +150,7 @@ public class SwarmManager {
         }
 
         if (!crow.isTame()) {
+            if (isInCooldown(crow.getId(), currentTick)) return;
             triggerSwarm(crow, attacker);
             return;
         }
@@ -166,35 +167,13 @@ public class SwarmManager {
             return;
         }
 
+        if (isInCooldown(crow.getId(), currentTick)) return;
         triggerRetaliation(crow, attacker);
     }
 
     public void onPlayerAttackCrow(Player player, CrowEntity crow) {
-        Level level = crow.level();
-        long currentTick = level.getGameTime();
-
-        if (isInCooldown(crow.getId(), currentTick)) {
-            return;
-        }
-
-        if (!crow.isTame()) {
-            triggerSwarm(crow, player);
-            return;
-        }
-
-        if (crow.isInSittingPose()) {
-            return;
-        }
-
-        recordEscalationHit(crow.getId(), currentTick);
-
-        if (getEscalationCount(crow.getId(), currentTick) >= ESCALATION_THRESHOLD) {
-            triggerSwarm(crow, player);
-            escalationHistory.remove(crow.getId());
-            return;
-        }
-
-        triggerRetaliation(crow, player);
+        // AFTER_DAMAGE is the authoritative path. Counting here would count one
+        // player hit twice because AttackEntityCallback fires before damage.
     }
 
     public void onPlayerAttackTarget(Player player, Entity target) {
@@ -203,7 +182,8 @@ public class SwarmManager {
                 CrowEntity nearbyCrow = findNearbyCrow(player);
                 if (nearbyCrow != null && nearbyCrow.isTame()) {
                     LivingEntity crowOwner = nearbyCrow.getOwner();
-                    if (crowOwner == player) {
+                    if (crowOwner == player && !isInCooldown(
+                            nearbyCrow.getId(), nearbyCrow.level().getGameTime())) {
                         triggerSwarm(nearbyCrow, livingTarget);
                     }
                 }
@@ -228,6 +208,9 @@ public class SwarmManager {
         );
 
         for (CrowEntity crow : responders) {
+            if (crow.isBaby()) {
+                continue;
+            }
             if (isInCooldown(crow.getId(), currentTick)) {
                 continue;
             }

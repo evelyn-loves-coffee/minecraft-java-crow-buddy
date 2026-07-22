@@ -48,12 +48,16 @@ public class CrowNestBlockEntity extends BlockEntity {
         this.stateMachine.startIncubation();
         this.setChanged();
         if (this.level != null && !this.level.isClientSide()) {
+            this.syncEggAppearance();
             this.level.playSound(null, this.getBlockPos(), ModSounds.CROW_EGG_LAY,
                 SoundSource.NEUTRAL, 0.5f, 1.0f);
         }
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, CrowNestBlockEntity be) {
+        if (!level.isClientSide()) {
+            be.syncEggAppearance();
+        }
         if (be.stateMachine.getStage() == CrowNestStateMachine.STAGE_IDLE) {
             return;
         }
@@ -64,6 +68,18 @@ public class CrowNestBlockEntity extends BlockEntity {
                 be.setChanged();
                 be.stateMachine.resetSideEffectTriggered();
             }
+        }
+    }
+
+    private void syncEggAppearance() {
+        if (this.level == null) return;
+        BlockState state = this.getBlockState();
+        if (!state.hasProperty(com.crowbuddy.block.CrowNestBlock.HAS_EGGS)) return;
+        boolean shouldShowEggs = this.stateMachine.getStage() == CrowNestStateMachine.STAGE_EGGS;
+        if (state.getValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS) != shouldShowEggs) {
+            this.level.setBlock(this.getBlockPos(),
+                state.setValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS, shouldShowEggs),
+                net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
         }
     }
 

@@ -1,22 +1,16 @@
 {
-  "variants": {
-    "": [
-      {
-        "model": "crowbuddy:block/crow_nest",
-        "y": 0
-      },
-      {
-        "model": "crowbuddy:block/crow_nest",
-        "y": 90
-      },
-      {
-        "model": "crowbuddy:block/crow_nest",
-        "y": 180
-      },
-      {
-        "model": "crowbuddy:block/crow_nest",
-        "y": 270
-      }
-    ]
-  }
+  "multipart": [
+    {
+      "apply": [
+        { "model": "crowbuddy:block/crow_nest", "y": 0 },
+        { "model": "crowbuddy:block/crow_nest", "y": 90 },
+        { "model": "crowbuddy:block/crow_nest", "y": 180 },
+        { "model": "crowbuddy:block/crow_nest", "y": 270 }
+      ]
+    },
+    {
+      "when": { "has_eggs": "true" },
+      "apply": { "model": "crowbuddy:block/crow_nest_eggs" }
+    }
+  ]
 }

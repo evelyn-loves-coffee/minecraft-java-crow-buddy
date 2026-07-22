@@ -40,6 +40,15 @@ public class BabyNestReturnGoal extends Goal {
     }
 
     @Override
+    public boolean canContinueToUse() {
+        if (!this.crow.isBaby() || this.crow.isInSittingPose()
+                || this.crow.isAirborne()) return false;
+        BlockPos nest = this.crow.getHomeNestPos();
+        return nest != null && this.crow.distanceToSqr(
+            nest.getX() + 0.5, nest.getY(), nest.getZ() + 0.5) > STOP_DISTANCE_SQ;
+    }
+
+    @Override
     public void tick() {
         BlockPos nest = this.crow.getHomeNestPos();
         if (nest == null) return;

@@ -3,12 +3,13 @@ package com.crowbuddy.entity;
 import com.crowbuddy.CrowBuddy;
 import com.geckolib.animatable.GeoAnimatable;
 import com.geckolib.animatable.instance.AnimatableInstanceCache;
-import com.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
 import com.geckolib.animation.AnimationController;
 import com.geckolib.animation.RawAnimation;
+import com.geckolib.animation.object.EasingType;
 import com.geckolib.animation.object.PlayState;
 import com.geckolib.animation.state.AnimationTest;
 import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.util.GeckoLibUtil;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -26,7 +27,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -34,6 +36,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import com.crowbuddy.goal.CrowFlightGoal;
+import com.crowbuddy.goal.HigherGroundStrollGoal;
 import com.crowbuddy.goal.ScavengeGoal;
 import com.crowbuddy.goal.SwarmDistressGoal;
 import com.crowbuddy.item.ModItems;
@@ -49,18 +52,9 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         Identifier.fromNamespaceAndPath("minecraft", "parrot_food")
     );
 
-    private static final EntityDataAccessor<Boolean> PERCHED =
-        SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> STATE =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.INT);
 
-    private static final int STATE_ID = 0;
-    private static final int STATE_SEARCHING = 1;
-    private static final int STATE_CARRYING = 2;
-    private static final int STATE_COMBAT = 3;
-    private static final int STATE_DISTRESS = 4;
-    private static final int STATE_SWARM = 5;
-    private static final int STATE_NESTING = 6;
     private static final EntityDataAccessor<ItemStack> CARRIED_ITEM =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.ITEM_STACK);
     private static final EntityDataAccessor<Float> SATIATION =
@@ -72,13 +66,16 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private static final EntityDataAccessor<Boolean> AIRBORNE =
         SynchedEntityData.defineId(CrowEntity.class, EntityDataSerializers.BOOLEAN);
 
-    private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private ScavengeGoal scavengeGoal;
     private SwarmDistressGoal swarmGoal;
     private boolean behaviorControllerActive = false;
     private int oneShotStartTick = -1;
     private int takeoffStartTick = -1;
     private int landStartTick = -1;
+    private int begUntilTick = -1;
+    private int nextBegTick = 0;
+    private int nextPreenTick = 0;
     private net.minecraft.core.BlockPos homeNestPos;
     private static final int PECK_DURATION_TICKS = 8;
     private static final int CAW_DURATION_TICKS = 15;
@@ -90,6 +87,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private static final int BABY_LAND_DURATION_TICKS = 14;
     private static final int ADULT_TAKEOFF_DURATION_TICKS = 14;
     private static final int ADULT_LAND_DURATION_TICKS = 16;
+    private static final float FEEDING_SATIATION = 0.25f;
 
     public CrowEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
@@ -107,72 +105,50 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.get(this.level()), SwarmDistressGoal.Mode.SWARM);
+        this.goalSelector.addGoal(0, this.swarmGoal);
         this.goalSelector.addGoal(1, new com.crowbuddy.entity.ai.goal.CrowNestSeekGoal(this, 1.0, 1200));
+        this.goalSelector.addGoal(1, new CrowFlightGoal(this));
+        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0, CrowEntity.class));
         final CrowEntity self = this;
-        this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
+        this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
             this, 1.0, 6.0f, 10.0f) {
             @Override
             public boolean canUse() {
-                return !self.isPerched() && super.canUse();
+                return super.canUse();
             }
         });
-        this.goalSelector.addGoal(4, new RandomStrollGoal(this, 1.0));
-        this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 6.0f));
-        this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
-
-        if (this.isBaby()) {
-            registerBabyGoals();
-        } else {
-            registerAdultGoals();
-        }
-    }
-
-    private void registerAdultGoals() {
-        this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.get(this.level()), SwarmDistressGoal.Mode.SWARM);
-        this.goalSelector.addGoal(0, this.swarmGoal);
-        this.goalSelector.addGoal(1, new CrowFlightGoal(this));
-        this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.TemptGoal(
+        this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
+        this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
+        this.goalSelector.addGoal(3, new com.crowbuddy.goal.BabyNestReturnGoal(this));
         this.scavengeGoal = new ScavengeGoal(this);
-        this.goalSelector.addGoal(4, this.scavengeGoal);
-    }
-
-    private void registerBabyGoals() {
-        this.goalSelector.addGoal(1, new com.crowbuddy.goal.BabyFlightGoal(this));
-        this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
-        this.goalSelector.addGoal(4, new com.crowbuddy.goal.BabyNestReturnGoal(this));
-        final CrowEntity self = this;
-        this.goalSelector.addGoal(5, new RandomStrollGoal(this, 1.0) {
+        this.goalSelector.addGoal(5, this.scavengeGoal);
+        this.goalSelector.addGoal(6, new HigherGroundStrollGoal(this, 1.0) {
             @Override
             public boolean canUse() {
-                if (self.isAirborne()) return false;
+                if (self.isAirborne() || self.isInSittingPose()) return false;
                 net.minecraft.core.BlockPos nest = self.getHomeNestPos();
-                if (nest != null && self.distanceToSqr(nest.getX() + 0.5, nest.getY(), nest.getZ() + 0.5) > 400.0) {
+                if (self.isBaby() && nest != null
+                        && self.distanceToSqr(nest.getX() + 0.5, nest.getY(), nest.getZ() + 0.5) > 400.0) {
                     return false;
                 }
                 return super.canUse();
             }
         });
+        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0f));
+        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
     }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(PERCHED, false);
         builder.define(STATE, CrowState.IDLE.stateId());
         builder.define(CARRIED_ITEM, ItemStack.EMPTY);
         builder.define(SATIATION, 1.0f);
         builder.define(RELATIONSHIP, 0.0f);
         builder.define(IN_MATING_STATE, false);
         builder.define(AIRBORNE, false);
-    }
-
-    public void setPerched(boolean perched) {
-        this.entityData.set(PERCHED, perched);
-    }
-
-    public boolean isPerched() {
-        return this.entityData.get(PERCHED);
     }
 
     public void setState(CrowState state) {
@@ -219,10 +195,30 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     public void setAirborne(boolean airborne) {
         this.entityData.set(AIRBORNE, airborne);
+        this.setNoGravity(airborne);
     }
 
     public boolean isAirborne() {
         return this.entityData.get(AIRBORNE);
+    }
+
+    @Override
+    public boolean causeFallDamage(double fallDistance, float damageMultiplier,
+                                   net.minecraft.world.damagesource.DamageSource source) {
+        this.resetFallDistance();
+        return false;
+    }
+
+    @Override
+    public boolean checkSpawnRules(LevelAccessor level, EntitySpawnReason reason) {
+        if (!super.checkSpawnRules(level, reason)) return false;
+        if (reason != EntitySpawnReason.NATURAL && reason != EntitySpawnReason.CHUNK_GENERATION) {
+            return true;
+        }
+        net.minecraft.core.BlockPos pos = this.blockPosition();
+        int surfaceY = level.getHeight(
+            net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
+        return pos.getY() >= surfaceY - 1 && level.canSeeSky(pos);
     }
 
     public void triggerTakeoffAnimation() {
@@ -244,6 +240,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     protected void addAdditionalSaveData(net.minecraft.world.level.storage.ValueOutput output) {
         super.addAdditionalSaveData(output);
+        output.putInt("crowState", this.getState().stateId());
+        output.putFloat("satiation", this.getSatiation());
+        output.putFloat("relationship", this.getRelationship());
+        output.putBoolean("inMatingState", this.isInMatingState());
+        output.store("carriedItem", ItemStack.OPTIONAL_CODEC, this.getCarriedItem());
+        output.putBoolean("hasHomeNest", this.homeNestPos != null);
         if (this.homeNestPos != null) {
             output.putInt("homeNestX", this.homeNestPos.getX());
             output.putInt("homeNestY", this.homeNestPos.getY());
@@ -255,6 +257,14 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     protected void readAdditionalSaveData(net.minecraft.world.level.storage.ValueInput input) {
         super.readAdditionalSaveData(input);
+        // Shoulder perching was removed. Clear no-gravity when loading legacy saves.
+        this.setNoGravity(false);
+        this.setState(CrowState.fromStateId(input.getIntOr("crowState", CrowState.IDLE.stateId())));
+        this.setSatiation(input.getFloatOr("satiation", 1.0f));
+        this.setRelationship(CrowBehaviorPolicy.clampRelationship(input.getFloatOr("relationship", 0.0f)));
+        this.setInMatingState(input.getBooleanOr("inMatingState", false));
+        this.setCarriedItem(input.read("carriedItem", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
+        if (!input.getBooleanOr("hasHomeNest", false)) return;
         int x = input.getIntOr("homeNestX", -1);
         int y = input.getIntOr("homeNestY", -1);
         int z = input.getIntOr("homeNestZ", -1);
@@ -343,6 +353,56 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        ItemStack itemStack = player.getItemInHand(hand);
+        if (isPoisonousFood(itemStack)) {
+            if (this.level().isClientSide()) return InteractionResult.SUCCESS;
+            this.usePlayerItem(player, hand, itemStack);
+            this.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                net.minecraft.world.effect.MobEffects.POISON, 200));
+            return InteractionResult.SUCCESS;
+        }
+        if (this.isFood(itemStack)) {
+            if (CrowBehaviorPolicy.isBreedingCooldown(this.getAge())) {
+                return InteractionResult.PASS;
+            }
+            boolean isTamingFood = itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
+            if (this.level().isClientSide()) {
+                return InteractionResult.SUCCESS;
+            }
+
+            if (CrowBehaviorPolicy.shouldSpeedUpGrowth(this.isBaby(), true)) {
+                InteractionResult growthResult = super.mobInteract(player, hand);
+                boolean consumedFood = growthResult.consumesAction();
+                if (consumedFood) {
+                    this.finishFeeding();
+                }
+                if (CrowBehaviorPolicy.shouldEmitGrowthParticles(true, consumedFood)) {
+                    this.broadcastGrowthParticles();
+                }
+                return growthResult;
+            }
+
+            if (this.isTame()) {
+                InteractionResult breedingResult = super.mobInteract(player, hand);
+                if (breedingResult.consumesAction()) {
+                    this.finishFeeding();
+                    return breedingResult;
+                }
+            }
+
+            this.feed(player, hand, itemStack, 2.0f, 2.0f);
+            this.finishFeeding();
+            if (CrowBehaviorPolicy.canAttemptTaming(this.isBaby(), this.isTame(), isTamingFood)) {
+                boolean tamed = this.getRandom().nextInt(
+                    CrowBehaviorPolicy.TAMING_CHANCE_DENOMINATOR) == 0;
+                if (tamed) {
+                    this.tame(player);
+                }
+                this.level().broadcastEntityEvent(this, tamed ? (byte) 7 : (byte) 6);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
         InteractionResult foodResult = super.mobInteract(player, hand);
         if (foodResult.consumesAction()) {
             return foodResult;
@@ -350,17 +410,39 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         if (this.level().isClientSide()) {
             return InteractionResult.SUCCESS;
         }
+        if (!this.isTame() || !this.isOwnedBy(player)) {
+            return InteractionResult.PASS;
+        }
         if (player.isCrouching()) {
             this.setOrderedToSit(!this.isOrderedToSit());
-        } else if (!this.isInSittingPose()) {
-            this.setPerched(!this.isPerched());
+            return InteractionResult.CONSUME;
         }
-        return InteractionResult.CONSUME;
+        return InteractionResult.PASS;
+    }
+
+    private void finishFeeding() {
+        this.setSatiation(this.getSatiation() + FEEDING_SATIATION);
+        this.setRelationship(Math.min(1.0f, this.getRelationship() + 0.05f));
+        this.dropCarriedItem();
+    }
+
+    private void broadcastGrowthParticles() {
+        if (!(this.level() instanceof ServerLevel serverLevel)) return;
+        serverLevel.sendParticles(
+            net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
+            this.getX(), this.getY() + this.getBbHeight() * 0.6, this.getZ(),
+            7, 0.25, 0.2, 0.25, 0.0);
     }
 
     @Override
     public void tick() {
         super.tick();
+        if (this.isAirborne()) {
+            if (!this.level().isClientSide()) {
+                this.maintainForwardFlightMomentum();
+            }
+            this.alignBodyWithFlight();
+        }
         if (this.level().isClientSide()) {
             return;
         }
@@ -372,28 +454,30 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             this.setDeltaMovement(this.getDeltaMovement().multiply(0.5, 0.25, 0.5));
             return;
         }
-        if (this.isPerched() && this.isTame()) {
-            this.followOwnerPerch();
-        }
     }
 
-    private void followOwnerPerch() {
-        LivingEntity owner = this.getOwner();
-        if (owner == null || !owner.isAlive()) {
-            return;
+    private void maintainForwardFlightMomentum() {
+        Vec3 velocity = this.getDeltaMovement();
+        double minimumSpeed = CrowBehaviorPolicy.minimumFlightSpeed(this.isBaby());
+        double horizontalSpeed = velocity.horizontalDistance();
+        if (horizontalSpeed >= minimumSpeed) return;
+
+        Vec3 forward;
+        if (horizontalSpeed > 1.0E-4) {
+            forward = new Vec3(velocity.x / horizontalSpeed, 0.0, velocity.z / horizontalSpeed);
+        } else {
+            forward = Vec3.directionFromRotation(0.0f, this.getYRot());
         }
-        this.lookAt(owner, 180.0f, 180.0f);
-        double dx = owner.getX() - this.getX();
-        double dz = owner.getZ() - this.getZ();
-        double dy = (owner.getY() + owner.getBbHeight() / 2.0) - this.getY();
-        double distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq > 0.25) {
-            double dist = Math.sqrt(distSq);
-            double speed = Math.min(dist * 0.5, 0.3);
-            this.setDeltaMovement(
-                this.getDeltaMovement().add(dx / dist * speed, dy / dist * speed, dz / dist * speed)
-            );
-        }
+        this.setDeltaMovement(forward.x * minimumSpeed, velocity.y, forward.z * minimumSpeed);
+    }
+
+    private void alignBodyWithFlight() {
+        Vec3 velocity = this.getDeltaMovement();
+        float flightYaw = CrowBehaviorPolicy.flightYawDegrees(
+            velocity.x, velocity.z, this.getYRot());
+        this.setYRot(flightYaw);
+        this.yBodyRot = flightYaw;
+        this.yHeadRot = flightYaw;
     }
 
     @Override
@@ -405,16 +489,21 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     public boolean canFallInLove() {
-        return this.isTame() && !this.isBaby();
+        return CrowBehaviorPolicy.canEnterLoveMode(
+            this.isTame(), this.isBaby(), this.getAge(), this.isInLove(),
+            com.crowbuddy.entity.ai.goal.CrowNestSeekGoal.findNearestAvailableNest(this) != null);
     }
 
     @Override
     public void spawnChildFromBreeding(ServerLevel serverLevel, net.minecraft.world.entity.animal.Animal other) {
-        this.setInLoveTime(0);
+        this.setAge(CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS);
+        this.resetLove();
         this.setInMatingState(true);
         if (other instanceof CrowEntity otherCrow) {
-            otherCrow.setInLoveTime(0);
-            otherCrow.setInMatingState(true);
+            otherCrow.setAge(CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS);
+            otherCrow.resetLove();
+            // A single parent seeks a nest so one courtship cannot fill two nests.
+            otherCrow.setInMatingState(false);
         }
         serverLevel.sendParticles(
             net.minecraft.core.particles.ParticleTypes.HEART,
@@ -435,10 +524,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
         controllerRegistrar.add(
-            new AnimationController<>("behaviorController", 0, this::behaviorPredicate)
+            new AnimationController<CrowEntity>("behaviorController", 3, this::behaviorPredicate)
+                .setOverrideEasingType(EasingType.EASE_IN_OUT_SINE)
         );
         controllerRegistrar.add(
-            new AnimationController<>("movementController", 0, this::movementPredicate)
+            new AnimationController<CrowEntity>("movementController", 5, this::movementPredicate)
+                .setOverrideEasingType(EasingType.EASE_IN_OUT_SINE)
         );
     }
 
@@ -456,14 +547,20 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             state.setAndContinue(RawAnimation.begin().thenLoop("sleep"));
             return PlayState.CONTINUE;
         }
-        if (isBaby && !state.isMoving()
-                && this.getSatiation() < 0.4f
-                && this.tickCount % 90 == 0) {
+        if (isBaby && this.tickCount < this.begUntilTick) {
+            state.setAndContinue(RawAnimation.begin().thenLoop("beg"));
+            return PlayState.CONTINUE;
+        }
+        if (isBaby && !state.isMoving() && this.getSatiation() < 0.4f
+                && this.tickCount >= this.nextBegTick) {
+            this.begUntilTick = this.tickCount + 30 + this.getRandom().nextInt(31);
+            this.nextBegTick = this.begUntilTick + 160 + this.getRandom().nextInt(161);
             state.setAndContinue(RawAnimation.begin().thenLoop("beg"));
             return PlayState.CONTINUE;
         }
         CrowState currentState = this.getState();
-        if (currentState == CrowState.COMBAT && this.getTarget() != null) {
+        if (currentState == CrowState.COMBAT
+                && (this.getTarget() != null || (this.swarmGoal != null && this.swarmGoal.getTarget() != null))) {
             this.behaviorControllerActive = true;
             this.oneShotStartTick = this.tickCount;
             state.setAndContinue(RawAnimation.begin().thenPlay("peck"));
@@ -476,8 +573,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return PlayState.CONTINUE;
         }
         if (currentState == CrowState.IDLE && !state.isMoving()
-                && this.getSatiation() < 0.3f
-                && this.tickCount % 120 == 0) {
+                && this.tickCount >= this.nextPreenTick) {
+            this.nextPreenTick = this.tickCount + 400 + this.getRandom().nextInt(401);
             this.behaviorControllerActive = true;
             this.oneShotStartTick = this.tickCount;
             state.setAndContinue(RawAnimation.begin().thenPlay("preen"));
@@ -496,10 +593,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return isBaby ? BABY_CAW_DURATION_TICKS : CAW_DURATION_TICKS;
         }
         return isBaby ? BABY_PREEN_DURATION_TICKS : PREEN_DURATION_TICKS;
-    }
-
-    private void resetBehaviorController() {
-        this.behaviorControllerActive = false;
     }
 
     private PlayState movementPredicate(AnimationTest<CrowEntity> state) {
@@ -535,22 +628,16 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
         // Airborne
         if (this.isAirborne()) {
-            if (this.takeoffStartTick == -1) {
-                this.takeoffStartTick = this.tickCount;
-            }
-            Vec3 vel = this.getDeltaMovement();
-            double horizontalSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
-            if (horizontalSpeed > 0.15) {
-                state.setAndContinue(RawAnimation.begin().thenLoop("fly"));
-            } else {
-                state.setAndContinue(RawAnimation.begin().thenLoop("glide"));
-            }
+            state.setAndContinue(RawAnimation.begin().thenLoop("fly"));
             return PlayState.CONTINUE;
         }
 
         // Ground movement
+        // Animation predicates run client-side, where server path-navigation state is
+        // not synchronized. GeckoLib's movement signal is derived from rendered motion.
+        boolean isMoving = state.isMoving();
         if (isBaby) {
-            if (state.isMoving()) {
+            if (isMoving) {
                 state.setAndContinue(RawAnimation.begin().thenLoop("hop"));
             } else {
                 state.setAndContinue(RawAnimation.begin().thenLoop("idle"));
@@ -558,8 +645,8 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return PlayState.CONTINUE;
         }
 
-        if (state.isMoving()) {
-            state.setAndContinue(RawAnimation.begin().thenLoop("walk"));
+        if (isMoving) {
+            state.setAndContinue(RawAnimation.begin().thenLoop("hop"));
         } else {
             state.setAndContinue(RawAnimation.begin().thenLoop("idle"));
         }
