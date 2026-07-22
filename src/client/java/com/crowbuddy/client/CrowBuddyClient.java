@@ -1,11 +1,8 @@
 package com.crowbuddy.client;
 
 import com.crowbuddy.client.networking.ModClientNetworking;
-import com.crowbuddy.client.renderer.CrowNestBlockEntityRenderer;
 import com.crowbuddy.item.ModItems;
-import com.crowbuddy.registry.ModBlocks;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.world.item.CreativeModeTabs;
 import org.slf4j.Logger;
@@ -19,7 +16,6 @@ public class CrowBuddyClient implements ClientModInitializer {
         LOGGER.info("Crow Buddy client initializing.");
         ModClientEntities.register();
         ModClientNetworking.registerReceivers();
-        BlockEntityRendererRegistry.register(ModBlocks.getCrowNestBE(), CrowNestBlockEntityRenderer::create);
 
         // Tiny Takeover: register items in creative tabs
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS)

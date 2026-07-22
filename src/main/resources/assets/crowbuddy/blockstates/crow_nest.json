@@ -11,6 +11,10 @@
     {
       "when": { "has_eggs": "true" },
       "apply": { "model": "crowbuddy:block/crow_nest_eggs" }
+    },
+    {
+      "when": { "hatching": "true" },
+      "apply": { "model": "crowbuddy:block/crow_nest_egg_cracked" }
     }
   ]
 }

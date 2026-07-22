@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class CrowNestBlock extends net.minecraft.world.level.block.Block implements EntityBlock {
     public static final BooleanProperty HAS_EGGS = BooleanProperty.create("has_eggs");
+    public static final BooleanProperty HATCHING = BooleanProperty.create("hatching");
 
     public CrowNestBlock() {
         super(BlockBehaviour.Properties.of()
@@ -40,12 +41,14 @@ public class CrowNestBlock extends net.minecraft.world.level.block.Block impleme
                 .noLootTable()
                 .setId(ResourceKey.create(Registries.BLOCK, CrowBuddy.id("crow_nest")))
         );
-        this.registerDefaultState(this.stateDefinition.any().setValue(HAS_EGGS, false));
+        this.registerDefaultState(this.stateDefinition.any()
+            .setValue(HAS_EGGS, false)
+            .setValue(HATCHING, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
-        builder.add(HAS_EGGS);
+        builder.add(HAS_EGGS, HATCHING);
     }
 
     @Override
