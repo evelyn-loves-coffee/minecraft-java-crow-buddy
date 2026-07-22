@@ -55,8 +55,6 @@ public class CrowNestBlockEntityRenderer
         switch (state.stage) {
             case CrowNestStateMachine.STAGE_EGGS -> submitEggs(collector, poseStack, state, false);
             case CrowNestStateMachine.STAGE_HATCHING -> submitEggs(collector, poseStack, state, true);
-            case CrowNestStateMachine.STAGE_FLEDGLING -> submitChick(collector, poseStack, state);
-            case CrowNestStateMachine.STAGE_BABY_FLYING -> submitRemnants(collector, poseStack);
             default -> {}
         }
 
@@ -84,33 +82,6 @@ public class CrowNestBlockEntityRenderer
             float eggH = 0.18f;
             collector.submitCustomGeometry(poseStack, EGG_RENDER_TYPE,
                 (pose, consumer) -> renderCube(consumer, pose, eggW, eggH, 0.9f, 0.9f, 0.9f, 1.0f));
-
-            poseStack.popPose();
-        }
-    }
-
-    private void submitChick(SubmitNodeCollector collector, PoseStack poseStack,
-                             CrowNestRenderState state) {
-        poseStack.pushPose();
-        poseStack.translate(0.0f, 0.05f, 0.0f);
-        float pulse = (float) Math.sin(state.blockPos.getX() * 0.1) * 0.02f;
-        float scale = 0.15f + pulse;
-        poseStack.scale(scale, scale, scale);
-
-        collector.submitCustomGeometry(poseStack, EGG_RENDER_TYPE,
-            (pose, consumer) -> renderCube(consumer, pose, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f, 1.0f));
-
-        poseStack.popPose();
-    }
-
-    private void submitRemnants(SubmitNodeCollector collector, PoseStack poseStack) {
-        float[] positions = {-0.25f, 0.1f, 0.2f};
-        for (float x : positions) {
-            poseStack.pushPose();
-            poseStack.translate(x, -0.05f, 0.1f);
-
-            collector.submitCustomGeometry(poseStack, EGG_RENDER_TYPE,
-                (pose, consumer) -> renderCube(consumer, pose, 0.08f, 0.02f, 0.15f, 0.15f, 0.15f, 0.8f));
 
             poseStack.popPose();
         }

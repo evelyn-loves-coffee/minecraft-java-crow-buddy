@@ -76,7 +76,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private int begUntilTick = -1;
     private int nextBegTick = 0;
     private int nextPreenTick = 0;
-    private net.minecraft.core.BlockPos homeNestPos;
     private static final int PECK_DURATION_TICKS = 8;
     private static final int CAW_DURATION_TICKS = 15;
     private static final int PREEN_DURATION_TICKS = 46;
@@ -107,30 +106,17 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.get(this.level()), SwarmDistressGoal.Mode.SWARM);
         this.goalSelector.addGoal(0, this.swarmGoal);
-        this.goalSelector.addGoal(1, new com.crowbuddy.entity.ai.goal.CrowNestSeekGoal(this, 1.0, 1200));
+        this.goalSelector.addGoal(1, new com.crowbuddy.entity.ai.goal.CrowNestBuildGoal(this, 1.0, 1200));
         this.goalSelector.addGoal(1, new CrowFlightGoal(this));
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0, CrowEntity.class));
-        final CrowEntity self = this;
         this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
             this, 1.0, 6.0f, 10.0f));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
-        this.goalSelector.addGoal(3, new com.crowbuddy.goal.BabyNestReturnGoal(this));
         this.scavengeGoal = new ScavengeGoal(this);
         this.goalSelector.addGoal(5, this.scavengeGoal);
-        this.goalSelector.addGoal(6, new HigherGroundStrollGoal(this, 1.0) {
-            @Override
-            public boolean canUse() {
-                if (self.isAirborne() || self.isInSittingPose()) return false;
-                net.minecraft.core.BlockPos nest = self.getHomeNestPos();
-                if (self.isBaby() && nest != null
-                        && self.distanceToSqr(nest.getX() + 0.5, nest.getY(), nest.getZ() + 0.5) > 400.0) {
-                    return false;
-                }
-                return super.canUse();
-            }
-        });
+        this.goalSelector.addGoal(6, new HigherGroundStrollGoal(this, 1.0));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0f));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
     }
@@ -224,14 +210,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.landStartTick = this.tickCount;
     }
 
-    public void setHomeNestPos(net.minecraft.core.BlockPos pos) {
-        this.homeNestPos = pos;
-    }
-
-    public net.minecraft.core.BlockPos getHomeNestPos() {
-        return this.homeNestPos;
-    }
-
     @Override
     protected void addAdditionalSaveData(net.minecraft.world.level.storage.ValueOutput output) {
         super.addAdditionalSaveData(output);
@@ -240,13 +218,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         output.putFloat("relationship", this.getRelationship());
         output.putBoolean("inMatingState", this.isInMatingState());
         output.store("carriedItem", ItemStack.OPTIONAL_CODEC, this.getCarriedItem());
-        output.putBoolean("hasHomeNest", this.homeNestPos != null);
-        if (this.homeNestPos != null) {
-            output.putInt("homeNestX", this.homeNestPos.getX());
-            output.putInt("homeNestY", this.homeNestPos.getY());
-            output.putInt("homeNestZ", this.homeNestPos.getZ());
-            output.putString("homeNestDim", this.level().dimension().toString());
-        }
     }
 
     @Override
@@ -259,18 +230,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.setRelationship(CrowBehaviorPolicy.clampRelationship(input.getFloatOr("relationship", 0.0f)));
         this.setInMatingState(input.getBooleanOr("inMatingState", false));
         this.setCarriedItem(input.read("carriedItem", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
-        if (!input.getBooleanOr("hasHomeNest", false)) return;
-        int x = input.getIntOr("homeNestX", -1);
-        int y = input.getIntOr("homeNestY", -1);
-        int z = input.getIntOr("homeNestZ", -1);
-        if (x != -1 && y != -1 && z != -1) {
-            String savedDim = input.getStringOr("homeNestDim", "");
-            if (!savedDim.isEmpty() && this.level() != null) {
-                if (this.level().dimension().toString().equals(savedDim)) {
-                    this.homeNestPos = new net.minecraft.core.BlockPos(x, y, z);
-                }
-            }
-        }
     }
 
     public LivingEntity getOwner() {
@@ -394,21 +353,33 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return InteractionResult.SUCCESS;
         }
 
-        InteractionResult foodResult = super.mobInteract(player, hand);
-        if (foodResult.consumesAction()) {
-            return foodResult;
-        }
-        if (this.level().isClientSide()) {
-            return InteractionResult.SUCCESS;
-        }
-        if (!this.isTame() || !this.isOwnedBy(player)) {
-            return InteractionResult.PASS;
-        }
-        if (player.isCrouching()) {
-            this.setOrderedToSit(!this.isOrderedToSit());
+        if (this.isTame() && this.isOwnedBy(player)) {
+            if (this.level().isClientSide()) {
+                return InteractionResult.SUCCESS;
+            }
+            this.setNeutralSittingState(!this.isOrderedToSit());
             return InteractionResult.CONSUME;
         }
-        return InteractionResult.PASS;
+
+        return super.mobInteract(player, hand);
+    }
+
+    private void setNeutralSittingState(boolean sitting) {
+        this.setOrderedToSit(sitting);
+        this.setInSittingPose(sitting);
+        if (!sitting) {
+            return;
+        }
+
+        this.setTarget(null);
+        this.setState(CrowState.IDLE);
+        this.getNavigation().stop();
+        this.setAirborne(false);
+        this.setDeltaMovement(Vec3.ZERO);
+        if (this.swarmGoal != null) {
+            this.swarmGoal.clearTarget();
+        }
+        SwarmManager.get(this.level()).clearCrowState(this.getId());
     }
 
     private void finishFeeding() {
@@ -482,7 +453,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     public boolean canFallInLove() {
         return CrowBehaviorPolicy.canEnterLoveMode(
             this.isTame(), this.isBaby(), this.getAge(), this.isInLove(),
-            com.crowbuddy.entity.ai.goal.CrowNestSeekGoal.findNearestAvailableNest(this) != null);
+            com.crowbuddy.entity.ai.goal.CrowNestBuildGoal.findNearestBuildSite(this) != null);
     }
 
     @Override

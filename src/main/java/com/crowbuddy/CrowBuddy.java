@@ -8,7 +8,6 @@ import com.crowbuddy.registry.ModEntities;
 import com.crowbuddy.sound.ModSounds;
 import com.crowbuddy.swarm.SwarmManager;
 import com.crowbuddy.worldgen.CrowSpawning;
-import com.crowbuddy.worldgen.ModFeatures;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.minecraft.resources.Identifier;
@@ -28,7 +27,6 @@ public class CrowBuddy implements ModInitializer {
 		ModSounds.register();
 		ModNetworking.registerPayloads();
 		CrowEventHub.registerEvents();
-		ModFeatures.register();
 		CrowSpawning.initialize();
 		ServerLevelEvents.UNLOAD.register(SwarmManager::remove);
 	}

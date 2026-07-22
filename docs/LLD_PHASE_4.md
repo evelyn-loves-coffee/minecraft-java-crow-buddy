@@ -1,46 +1,32 @@
 # Crow Buddy: Phase 4 Low-Level Design (LLD)
 
-## 1. Procedural Spawning
+## 1. Crow Spawning
 
-### 1.1. Implementation Strategy
-- **Mechanism:** Uses Fabric's `BiomeModifications` for high compatibility.
-- **Biome Selection:** Uses `BiomeSelectors.foundInOverworld()` to ensure crows spawn in all overworld biomes (vanilla and modded), reflecting their adaptable nature.
-- **Spawn Parameters:**
-    - **Weight:** 2-3 (Rarer than wolves/foxes, but noticeable).
-    - **Group Size:** Min 2, Max 4 (To create social flocks).
+- Fabric `BiomeModifications` adds crows to overworld creature spawns.
+- Spawn weight is 2 with groups of 2–4.
+- Crow nests are never added during chunk generation.
 
-## 2. Crow Nest Implementation
+## 2. Breeding Nest Construction
 
-### 2.1. Nest Block & Entity
-- **Type:** `CrowNestBlock` implementing `EntityBlock` with a `CrowNestBlockEntity`.
-- **Placement Restriction:** Nests must be placed adjacent to `#minecraft:logs` to ensure thematic consistency.
-- **Lifecycle State Machine:** The `BlockEntity` manages the following states:
-    1. `Idle`
-    2. `Eggs`
-    3. `Hatching`
-    4. `Fledgling` (briefly in nest)
-    5. `Baby Flying`
-    6. `Adult`
-- **Persistence:** Uses MC 26.2 `ValueInput`/`ValueOutput` for state and timers.
+- Vanilla breeding selects one parent to enter `inMatingState`; the other receives its breeding cooldown but does not build.
+- `CrowNestBuildGoal` searches exposed canopy positions in expanding rings up to 16 blocks from the parent.
+- A site is valid only when the support is in `#minecraft:leaves`, the block above is air, the sky is visible, and the position is inside the world border.
+- Search complexity is bounded to 1,089 heightmap columns (`O(r²)` at radius 16). Invalidated targets are rechecked every 100 ticks for up to 1,200 ticks.
+- The parent walks or flies to the site, revalidates it, places the internal-only nest block, and starts incubation.
+- No player-obtainable nest item is registered.
 
-### 2.2. Procedural Feature Pipeline
-- **Feature Type:** Custom `CrowNestFeature` using a `ConfiguredFeature`/`PlacedFeature` pipeline.
-- **Placement Rule:**
-    - Validates target is a log block via `#minecraft:logs` tag.
-    - Places at Y-levels $\ge$ Sea Level.
-    - Placed as `VEGETAL_DECORATION` during world generation.
+## 3. Lifecycle
 
-### 2.3. Nest Lifecycle & Breeding
-The nest enables a full breeding lifecycle modeled after vanilla turtle mechanics:
-1. **Mating:** Two adults enter the nest (teleported to perch position) after a dual-feed trigger.
-2. **Egg Stage:** A single egg is placed on/in the nest.
-3. **Incubation:** A 12,000 tick (~60s) timer runs within the `BlockEntity`.
-4. **Hatching:** Upon timer completion, an animation (particle burst) plays and a fledgling `CrowEntity` is spawned.
-5. **Juvenile/Baby Stage:** The fledgling transitions to a "Baby Flying" stage with limited combat capabilities and a 24,000 tick (~120s) growth timer.
-6. **Adulthood:** After growth, the crow becomes a full adult and the nest resets to `Idle`.
+1. `IDLE` is the safe unloaded/default state.
+2. `EGGS` incubates for 12,000 ticks.
+3. `HATCHING` animates for 100 ticks.
+4. Hatch completion spawns exactly one baby and removes the nest without a drop.
 
-### 2.4. Destruction & Edge Cases
-- **Nest Breakage:**
-    - If broken during **Incubation**: Eggs are lost.
-    - If broken during **Fledgling/Baby** stages: The baby crow is lost.
-- **No Partial Recovery:** Breaking the nest does not drop the contents; it resets the state to `Idle`.
+Legacy saved post-hatch stages are removed on their next server tick without spawning another baby. Removing or decaying the supporting leaves also removes the nest.
+
+## 4. Trampling
+
+- The block has a shallow collision shape matching its model.
+- Non-careful walking has a 1-in-100 break chance; landing has a 1-in-3 chance.
+- Players and living mobs can trample; crows and sneaking entities cannot.
+- Mob trampling respects `mobGriefing`; player trampling does not.
