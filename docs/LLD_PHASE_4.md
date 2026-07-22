@@ -2,31 +2,31 @@
 
 ## 1. Crow Spawning
 
-- Fabric `BiomeModifications` adds crows to overworld creature spawns.
-- Spawn weight is 2 with groups of 2–4.
-- Crow nests are never added during chunk generation.
+- Fabric `BiomeModifications` added crows to overworld creature spawns.
+- Spawn weight was set to 2 with groups of two to four crows.
+- Crow nests were excluded from chunk generation.
 
 ## 2. Breeding Nest Construction
 
-- Vanilla breeding selects one parent to enter `inMatingState`; the other receives its breeding cooldown but does not build.
-- `CrowNestBuildGoal` searches exposed canopy positions in expanding rings up to 16 blocks from the parent.
-- A site is valid only when the support is in `#minecraft:leaves`, the block above is air, the sky is visible, and the position is inside the world border.
-- Search complexity is bounded to 1,089 heightmap columns (`O(r²)` at radius 16). Invalidated targets are rechecked every 100 ticks for up to 1,200 ticks.
-- The parent walks or flies to the site, revalidates it, places the internal-only nest block, and starts incubation.
-- No player-obtainable nest item is registered.
+- Vanilla breeding selected one parent to enter `inMatingState`; the other received its breeding cooldown but did not build.
+- `CrowNestBuildGoal` searched exposed canopy positions in expanding rings up to 16 blocks from the parent.
+- A site was accepted only when its support belonged to `#minecraft:leaves`, the block above was air, the sky was visible, and the position was inside the world border.
+- Search complexity was bounded to 1,089 heightmap columns, or `O(r²)` at radius 16. Invalidated targets were rechecked every 100 ticks for up to 1,200 ticks.
+- The parent walked or flew to the site, revalidated it, placed the internal-only nest block, and started incubation.
+- No player-obtainable nest item was registered.
 
 ## 3. Lifecycle
 
-1. `IDLE` is the safe unloaded/default state.
-2. `EGGS` incubates for 12,000 ticks.
-3. `HATCHING` animates for 100 ticks.
-4. Hatch completion spawns exactly one baby and removes the nest without a drop.
+1. `IDLE` served as the safe unloaded and default state.
+2. `EGGS` incubated for 12,000 ticks.
+3. `HATCHING` lasted for 100 ticks.
+4. Hatch completion spawned exactly one baby and removed the nest without a drop.
 
-Legacy saved post-hatch stages are removed on their next server tick without spawning another baby. Removing or decaying the supporting leaves also removes the nest.
+Legacy saved post-hatch stages were designed to be removed on their next server tick without spawning another baby. Removal or decay of the supporting leaves also removed the nest.
 
 ## 4. Trampling
 
-- The block has a shallow collision shape matching its model.
-- Non-careful walking has a 1-in-100 break chance; landing has a 1-in-3 chance.
-- Players and living mobs can trample; crows and sneaking entities cannot.
-- Mob trampling respects `mobGriefing`; player trampling does not.
+- The block received a shallow collision shape that matched its model.
+- Non-careful walking received a 1-in-100 break chance, while landing received a 1-in-3 chance.
+- Players and living mobs could trample nests; crows and sneaking entities could not.
+- Mob trampling respected `mobGriefing`, while player trampling did not.
