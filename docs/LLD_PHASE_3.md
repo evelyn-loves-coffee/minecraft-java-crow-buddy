@@ -50,3 +50,14 @@ Runtime state shared with clients was tracked through `SynchedEntityData`. Persi
     - `DistressPayload` broadcast distress events with entity ID, block position, and source ID.
     - `ScavengePayload` synchronized item acquisition and drops with crow ID and item stack.
 - **Pattern:** The implementation used the MC 26.2 `CustomPacketPayload` and `PayloadTypeRegistry` APIs.
+
+## 2. PAWS Verification
+
+| Pillar | Phase 3 rule |
+|---|---|
+| Performance | Proximity and swarm selection used squared distances; responder count, engagement duration, and cooldown work were bounded. |
+| Auditability | Synced state, persistent state, typed payloads, and per-crow swarm bookkeeping provided traceable behavior boundaries. |
+| Workability | Sitting cleared active aggression, baby crows were excluded from combat, and server-authoritative handlers controlled gameplay changes. |
+| Scalability | Behavior policy, AI goals, swarm coordination, events, and networking were separated into focused modules. |
+
+Verification covered pure behavior-policy tests, state-transition tests, payload registration, and a clean Gradle build.
