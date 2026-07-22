@@ -126,16 +126,16 @@ public class ScavengeGoal extends Goal {
             if (distSq > SEARCH_RADIUS_SQ) {
                 continue;
             }
-            Item item = itemEntity.getItem().getItem();
-            if (isInTag(item, BEACON_PAYMENT) && distSq < bestBeaconDist) {
+            ItemStack stack = itemEntity.getItem();
+            if (stack.is(BEACON_PAYMENT) && distSq < bestBeaconDist) {
                 bestBeacon = itemEntity;
                 bestBeaconDist = distSq;
             }
-            if (isInTag(item, PIGLIN_LOVED) && distSq < bestPiglinDist) {
+            if (stack.is(PIGLIN_LOVED) && distSq < bestPiglinDist) {
                 bestPiglin = itemEntity;
                 bestPiglinDist = distSq;
             }
-            if (isInTag(item, TRIM_MATERIALS) && distSq < bestTrimDist) {
+            if (stack.is(TRIM_MATERIALS) && distSq < bestTrimDist) {
                 bestTrim = itemEntity;
                 bestTrimDist = distSq;
             }
@@ -162,10 +162,6 @@ public class ScavengeGoal extends Goal {
             }
         }
         return nearest;
-    }
-
-    private static boolean isInTag(Item item, TagKey<Item> tag) {
-        return item.builtInRegistryHolder().is(tag);
     }
 
     private void temporaryCooldown() {

@@ -112,12 +112,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0, CrowEntity.class));
         final CrowEntity self = this;
         this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
-            this, 1.0, 6.0f, 10.0f) {
-            @Override
-            public boolean canUse() {
-                return super.canUse();
-            }
-        });
+            this, 1.0, 6.0f, 10.0f));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
@@ -320,13 +315,13 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         if (item == net.minecraft.world.item.Items.COCOA_BEANS) {
             return false;
         }
-        if (isInTag(item, PARROT_POISONOUS)) {
+        if (itemStack.is(PARROT_POISONOUS)) {
             return false;
         }
         if (item == ModItems.BLACK_OIL_SUNFLOWER_SEEDS) {
             return true;
         }
-        if (isInTag(item, PARROT_FOOD)) {
+        if (itemStack.is(PARROT_FOOD)) {
             return true;
         }
         return false;
@@ -338,11 +333,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     public static boolean isPoisonousFood(ItemStack itemStack) {
         Item item = itemStack.getItem();
-        return item == net.minecraft.world.item.Items.COCOA_BEANS || isInTag(item, PARROT_POISONOUS);
-    }
-
-    private static boolean isInTag(Item item, TagKey<Item> tag) {
-        return item.builtInRegistryHolder().is(tag);
+        return item == net.minecraft.world.item.Items.COCOA_BEANS || itemStack.is(PARROT_POISONOUS);
     }
 
     @Override

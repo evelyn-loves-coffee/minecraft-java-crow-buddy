@@ -22,3 +22,10 @@ gradle-app.setting
 
 # Avoid logs
 logs/
+
+# Local Minecraft client runtime (worlds, options, caches, and downloads)
+/run/
+
+# Machine-local deployment helpers and staged mods
+/build-and-deploy.sh
+/mods/
