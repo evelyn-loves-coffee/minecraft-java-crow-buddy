@@ -1,7 +1,7 @@
 {
   "ambientocclusion": false,
   "textures": {
-    "egg": "minecraft:block/light_blue_concrete",
+    "egg": "crowbuddy:block/crow_nest_egg_cracked",
     "particle": "crowbuddy:block/crow_nest"
   },
   "elements": [

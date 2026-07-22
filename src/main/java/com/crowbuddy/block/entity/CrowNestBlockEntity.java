@@ -80,11 +80,16 @@ public class CrowNestBlockEntity extends BlockEntity {
     private void syncEggAppearance() {
         if (this.level == null) return;
         BlockState state = this.getBlockState();
-        if (!state.hasProperty(com.crowbuddy.block.CrowNestBlock.HAS_EGGS)) return;
+        if (!state.hasProperty(com.crowbuddy.block.CrowNestBlock.HAS_EGGS)
+                || !state.hasProperty(com.crowbuddy.block.CrowNestBlock.HATCHING)) return;
         boolean shouldShowEggs = this.stateMachine.getStage() == CrowNestStateMachine.STAGE_EGGS;
-        if (state.getValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS) != shouldShowEggs) {
+        boolean shouldShowCrackedEgg =
+            this.stateMachine.getStage() == CrowNestStateMachine.STAGE_HATCHING;
+        if (state.getValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS) != shouldShowEggs
+                || state.getValue(com.crowbuddy.block.CrowNestBlock.HATCHING) != shouldShowCrackedEgg) {
             this.level.setBlock(this.getBlockPos(),
-                state.setValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS, shouldShowEggs),
+                state.setValue(com.crowbuddy.block.CrowNestBlock.HAS_EGGS, shouldShowEggs)
+                    .setValue(com.crowbuddy.block.CrowNestBlock.HATCHING, shouldShowCrackedEgg),
                 net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
         }
     }
@@ -95,6 +100,7 @@ public class CrowNestBlockEntity extends BlockEntity {
         }
         switch (this.stateMachine.getLastSideEffect()) {
             case EGGS_TO_HATCHING -> {
+                this.syncEggAppearance();
                 serverLevel.playSound(null, pos, ModSounds.CROW_HATCH,
                     SoundSource.NEUTRAL, 0.5f, 1.0f);
                 serverLevel.sendParticles(

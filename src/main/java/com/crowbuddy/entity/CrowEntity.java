@@ -87,6 +87,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private static final int ADULT_TAKEOFF_DURATION_TICKS = 14;
     private static final int ADULT_LAND_DURATION_TICKS = 16;
     private static final float FEEDING_SATIATION = 0.25f;
+    private static final double TEMPT_RANGE_BLOCKS = 10.0;
 
     public CrowEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
@@ -97,7 +98,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             .add(Attributes.MAX_HEALTH, 10.0)
             .add(Attributes.MOVEMENT_SPEED, 0.25)
             .add(Attributes.FOLLOW_RANGE, 24.0)
-            .add(Attributes.TEMPT_RANGE, 3.0)
+            .add(Attributes.TEMPT_RANGE, TEMPT_RANGE_BLOCKS)
             .add(Attributes.ATTACK_DAMAGE, 2.0);
     }
 
