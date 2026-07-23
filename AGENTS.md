@@ -1,8 +1,8 @@
 # AGENTS.md
 
 ## 1. Session Initialization
-* **Sync Check:** Perform `git fetch` immediately.
-* **Auto-Rebase:** If a desync is detected, automatically execute `git rebase`. Stop and request user intervention **only** if merge conflicts occur.
+* **Sync Check:** Record when the last time git fetch was run in ".git-fetch-timestamp" in ISO 8601 format. Perform `git fetch` if more than a day has passed, or if user requests.
+* **Auto-Rebase:** If a desync is detected from a fetch, automatically execute `git rebase`. Stop and request user intervention **only** if merge conflicts occur.
 
 ## 2. Operational Phases
 Apply the **PAWS** standard during these phases. All phases must maintain a "Golden Thread" of evidence from discovery to implementation.

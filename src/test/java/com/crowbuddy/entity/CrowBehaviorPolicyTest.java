@@ -37,6 +37,15 @@ class CrowBehaviorPolicyTest {
     }
 
     @Test
+    void groundedNestSeekingFlightUsesHopAnimationOnlyWhileMoving() {
+        assertTrue(CrowBehaviorPolicy.shouldHopWhileNestSeeking(true, true, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldHopWhileNestSeeking(false, true, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldHopWhileNestSeeking(true, false, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldHopWhileNestSeeking(true, true, false, true));
+        assertFalse(CrowBehaviorPolicy.shouldHopWhileNestSeeking(true, true, true, false));
+    }
+
+    @Test
     void onlyUntamedAdultsCanAttemptTaming() {
         assertTrue(CrowBehaviorPolicy.canAttemptTaming(false, false, true));
         assertFalse(CrowBehaviorPolicy.canAttemptTaming(true, false, true));
@@ -66,10 +75,59 @@ class CrowBehaviorPolicyTest {
     }
 
     @Test
-    void hungrierCrowsSearchSooner() {
-        assertEquals(2400, CrowBehaviorPolicy.scavengeCooldownTicks(1.0f));
-        assertEquals(1200, CrowBehaviorPolicy.scavengeCooldownTicks(0.6f));
-        assertEquals(600, CrowBehaviorPolicy.scavengeCooldownTicks(0.35f));
+    void breedingCooldownDoesNotPreventOtherwiseEligibleScavenging() {
+        assertTrue(CrowBehaviorPolicy.isBreedingCooldown(
+            CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS));
+        assertTrue(CrowBehaviorPolicy.canScavenge(false, false, false, 0.05f));
+        assertFalse(CrowBehaviorPolicy.canScavenge(true, false, false, 1.0f));
+        assertFalse(CrowBehaviorPolicy.canScavenge(false, true, false, 1.0f));
+        assertFalse(CrowBehaviorPolicy.canScavenge(false, false, true, 1.0f));
+        assertFalse(CrowBehaviorPolicy.canScavenge(false, false, false, 0.049f));
+        assertEquals(0.00005f, CrowBehaviorPolicy.SATIATION_DECAY_PER_TICK, 0.000001f);
+        assertEquals(0.05f, CrowBehaviorPolicy.MIN_SCAVENGE_SATIATION, 0.0001f);
+    }
+
+    @Test
+    void carriedItemPaymentRequiresFoodFromTheOwner() {
+        assertTrue(CrowBehaviorPolicy.shouldAcceptDeliveryPayment(true, true, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldAcceptDeliveryPayment(false, true, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldAcceptDeliveryPayment(true, false, true, true));
+        assertFalse(CrowBehaviorPolicy.shouldAcceptDeliveryPayment(true, true, false, true));
+        assertFalse(CrowBehaviorPolicy.shouldAcceptDeliveryPayment(true, true, true, false));
+    }
+
+    @Test
+    void fullCrowsOnlyAcceptFoodToReleaseACarriedItem() {
+        assertFalse(CrowBehaviorPolicy.shouldConsumeFood(1.0f, false));
+        assertFalse(CrowBehaviorPolicy.shouldConsumeFood(0.999f, false));
+        assertFalse(CrowBehaviorPolicy.shouldConsumeFood(0.751f, false));
+        assertTrue(CrowBehaviorPolicy.shouldConsumeFood(0.75f, false));
+        assertTrue(CrowBehaviorPolicy.shouldConsumeFood(1.0f, true));
+        assertEquals(6.25, CrowBehaviorPolicy.DELIVERY_DISTANCE_SQ, 0.0001);
+    }
+
+    @Test
+    void scavengingAggregatesStackableItemsWithoutExceedingEight() {
+        assertEquals(8, CrowBehaviorPolicy.MAX_SCAVENGE_STACK_SIZE);
+        assertEquals(2, CrowBehaviorPolicy.scavengeTransferCount(0, 2, true));
+        assertEquals(6, CrowBehaviorPolicy.scavengeTransferCount(2, 10, true));
+        assertEquals(0, CrowBehaviorPolicy.scavengeTransferCount(8, 10, true));
+        assertEquals(1, CrowBehaviorPolicy.scavengeTransferCount(0, 8, false));
+        assertEquals(0, CrowBehaviorPolicy.scavengeTransferCount(1, 8, false));
+    }
+
+    @Test
+    void scavengingFlightTakesOffCruisesThenDescendsToTheItem() {
+        assertEquals(66.5, CrowBehaviorPolicy.scavengeFlightTargetY(0, 25.0, 66.5, 64.0));
+        assertEquals(66.5, CrowBehaviorPolicy.scavengeFlightTargetY(12, 25.0, 66.5, 64.0));
+        assertEquals(64.25, CrowBehaviorPolicy.scavengeFlightTargetY(12, 0.5, 66.5, 64.0));
+        assertTrue(CrowBehaviorPolicy.shouldAscendBeforeScavenging(1, 64.0, 66.25));
+        assertTrue(CrowBehaviorPolicy.shouldAscendBeforeScavenging(40, 64.0, 66.25));
+        assertFalse(CrowBehaviorPolicy.shouldAscendBeforeScavenging(41, 64.0, 66.25));
+        assertFalse(CrowBehaviorPolicy.shouldAscendBeforeScavenging(1, 66.0, 66.25));
+        assertTrue(CrowBehaviorPolicy.shouldUseGroundHop(0.5, 9.0));
+        assertFalse(CrowBehaviorPolicy.shouldUseGroundHop(0.51, 1.0));
+        assertFalse(CrowBehaviorPolicy.shouldUseGroundHop(0.0, 9.01));
     }
 
     @Test

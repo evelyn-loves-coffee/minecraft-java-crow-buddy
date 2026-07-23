@@ -11,6 +11,7 @@ import com.geckolib.animation.state.AnimationTest;
 import com.geckolib.animatable.manager.AnimatableManager;
 import com.geckolib.util.GeckoLibUtil;
 import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.Identifier;
@@ -32,7 +33,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import com.crowbuddy.goal.CrowFlightGoal;
@@ -69,6 +69,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private ScavengeGoal scavengeGoal;
     private SwarmDistressGoal swarmGoal;
+    private com.crowbuddy.entity.ai.goal.CrowNestBuildGoal nestBuildGoal;
     private boolean behaviorControllerActive = false;
     private int oneShotStartTick = -1;
     private int takeoffStartTick = -1;
@@ -76,6 +77,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private int begUntilTick = -1;
     private int nextBegTick = 0;
     private int nextPreenTick = 0;
+    private boolean directedFlight;
     private static final int PECK_DURATION_TICKS = 8;
     private static final int CAW_DURATION_TICKS = 15;
     private static final int PREEN_DURATION_TICKS = 46;
@@ -107,16 +109,17 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.swarmGoal = new SwarmDistressGoal(this, SwarmManager.get(this.level()), SwarmDistressGoal.Mode.SWARM);
         this.goalSelector.addGoal(0, this.swarmGoal);
-        this.goalSelector.addGoal(1, new com.crowbuddy.entity.ai.goal.CrowNestBuildGoal(this, 1.0, 1200));
-        this.goalSelector.addGoal(1, new CrowFlightGoal(this));
+        this.nestBuildGoal = new com.crowbuddy.entity.ai.goal.CrowNestBuildGoal(this, 1.0, 1200);
+        this.goalSelector.addGoal(1, this.nestBuildGoal);
+        this.scavengeGoal = new ScavengeGoal(this);
+        this.goalSelector.addGoal(1, this.scavengeGoal);
+        this.goalSelector.addGoal(2, new CrowFlightGoal(this));
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0, CrowEntity.class));
         this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
             this, 1.0, 6.0f, 10.0f));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.TemptGoal(
             this, 1.25, itemStack -> this.isFood(itemStack), false));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
-        this.scavengeGoal = new ScavengeGoal(this);
-        this.goalSelector.addGoal(5, this.scavengeGoal);
         this.goalSelector.addGoal(6, new HigherGroundStrollGoal(this, 1.0));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0f));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
@@ -178,10 +181,32 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     public void setAirborne(boolean airborne) {
         this.entityData.set(AIRBORNE, airborne);
         this.setNoGravity(airborne);
+        if (!airborne) this.directedFlight = false;
     }
 
     public boolean isAirborne() {
         return this.entityData.get(AIRBORNE);
+    }
+
+    /** Starts server-authoritative directed flight with the same full-block takeoff impulse. */
+    public void launchToward(Vec3 destination, double horizontalSpeed) {
+        this.launchToward(destination, horizontalSpeed, 0.42);
+    }
+
+    public void launchToward(Vec3 destination, double horizontalSpeed, double verticalSpeed) {
+        this.getNavigation().stop();
+        Vec3 horizontal = new Vec3(
+            destination.x - this.getX(), 0.0, destination.z - this.getZ());
+        if (horizontal.horizontalDistanceSqr() < 1.0E-4) {
+            horizontal = Vec3.directionFromRotation(0.0f, this.getYRot());
+        }
+        horizontal = horizontal.normalize().scale(horizontalSpeed);
+        // Match CrowFlightGoal's known-working adult takeoff. Apply movement before
+        // no-gravity airborne mode so ground collision does not erase the launch.
+        this.setDeltaMovement(horizontal.x, verticalSpeed, horizontal.z);
+        this.directedFlight = true;
+        this.setAirborne(true);
+        this.triggerTakeoffAnimation();
     }
 
     @Override
@@ -271,6 +296,10 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     @Override
     public boolean isFood(ItemStack itemStack) {
+        return itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
+    }
+
+    public boolean isConsumableCrowFood(ItemStack itemStack) {
         Item item = itemStack.getItem();
         if (item == net.minecraft.world.item.Items.COCOA_BEANS) {
             return false;
@@ -278,9 +307,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         if (itemStack.is(PARROT_POISONOUS)) {
             return false;
         }
-        if (item == ModItems.BLACK_OIL_SUNFLOWER_SEEDS) {
-            return true;
-        }
+        if (item == ModItems.BLACK_OIL_SUNFLOWER_SEEDS) return true;
         if (itemStack.is(PARROT_FOOD)) {
             return true;
         }
@@ -288,7 +315,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     public boolean isBreedingItem(ItemStack itemStack) {
-        return isFood(itemStack) || itemStack.is(Items.GOLDEN_DANDELION);
+        return itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
     }
 
     public static boolean isPoisonousFood(ItemStack itemStack) {
@@ -312,8 +339,23 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
                 net.minecraft.world.effect.MobEffects.POISON, 200));
             return InteractionResult.SUCCESS;
         }
-        if (this.isFood(itemStack)) {
-            if (CrowBehaviorPolicy.isBreedingCooldown(this.getAge())) {
+        if (this.isConsumableCrowFood(itemStack)) {
+            // A carrying crow accepts payment before breeding-cooldown handling.
+            // Otherwise the vanilla positive-age cooldown makes delivery impossible.
+            if (CrowBehaviorPolicy.shouldAcceptDeliveryPayment(
+                    !this.getCarriedItem().isEmpty(), this.isTame(), this.isOwnedBy(player), true)) {
+                if (this.level().isClientSide()) return InteractionResult.SUCCESS;
+                this.usePlayerItem(player, hand, itemStack);
+                this.finishFeeding(player);
+                return InteractionResult.SUCCESS;
+            }
+            // Black oil seeds remain usable for taming/breeding regardless of
+            // satiation; the fullness guard applies to ordinary food only.
+            if (!this.isFood(itemStack) && !CrowBehaviorPolicy.shouldConsumeFood(
+                    this.getSatiation(), !this.getCarriedItem().isEmpty())) {
+                return InteractionResult.PASS;
+            }
+            if (this.isFood(itemStack) && CrowBehaviorPolicy.isBreedingCooldown(this.getAge())) {
                 return InteractionResult.PASS;
             }
             boolean isTamingFood = itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
@@ -321,11 +363,11 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
                 return InteractionResult.SUCCESS;
             }
 
-            if (CrowBehaviorPolicy.shouldSpeedUpGrowth(this.isBaby(), true)) {
+            if (CrowBehaviorPolicy.shouldSpeedUpGrowth(this.isBaby(), true) && this.isFood(itemStack)) {
                 InteractionResult growthResult = super.mobInteract(player, hand);
                 boolean consumedFood = growthResult.consumesAction();
                 if (consumedFood) {
-                    this.finishFeeding();
+                    this.finishFeeding(player);
                 }
                 if (CrowBehaviorPolicy.shouldEmitGrowthParticles(true, consumedFood)) {
                     this.broadcastGrowthParticles();
@@ -333,16 +375,16 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
                 return growthResult;
             }
 
-            if (this.isTame()) {
+            if (this.isTame() && this.isFood(itemStack)) {
                 InteractionResult breedingResult = super.mobInteract(player, hand);
                 if (breedingResult.consumesAction()) {
-                    this.finishFeeding();
+                    this.finishFeeding(player);
                     return breedingResult;
                 }
             }
 
             this.feed(player, hand, itemStack, 2.0f, 2.0f);
-            this.finishFeeding();
+            this.finishFeeding(player);
             if (CrowBehaviorPolicy.canAttemptTaming(this.isBaby(), this.isTame(), isTamingFood)) {
                 boolean tamed = this.getRandom().nextInt(
                     CrowBehaviorPolicy.TAMING_CHANCE_DENOMINATOR) == 0;
@@ -383,10 +425,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         SwarmManager.get(this.level()).clearCrowState(this.getId());
     }
 
-    private void finishFeeding() {
+    private void finishFeeding(Player player) {
         this.setSatiation(this.getSatiation() + FEEDING_SATIATION);
         this.setRelationship(Math.min(1.0f, this.getRelationship() + 0.05f));
-        this.dropCarriedItem();
+        if (this.scavengeGoal != null) {
+            this.scavengeGoal.dropCarriedItemAt(player);
+        }
     }
 
     private void broadcastGrowthParticles() {
@@ -401,7 +445,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     public void tick() {
         super.tick();
         if (this.isAirborne()) {
-            if (!this.level().isClientSide()) {
+            if (!this.level().isClientSide() && !this.directedFlight) {
                 this.maintainForwardFlightMomentum();
             }
             this.alignBodyWithFlight();
@@ -411,7 +455,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         }
         float satiation = this.getSatiation();
         if (satiation > 0.0f) {
-            this.setSatiation(satiation - 0.0005f);
+            this.setSatiation(satiation - CrowBehaviorPolicy.SATIATION_DECAY_PER_TICK);
         }
         if (this.isInSittingPose()) {
             this.setDeltaMovement(this.getDeltaMovement().multiply(0.5, 0.25, 0.5));
@@ -461,12 +505,25 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     public void spawnChildFromBreeding(ServerLevel serverLevel, net.minecraft.world.entity.animal.Animal other) {
         this.setAge(CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS);
         this.resetLove();
-        this.setInMatingState(true);
+        BlockPos nestSite = com.crowbuddy.entity.ai.goal.CrowNestBuildGoal.findNearestBuildSite(this);
+        CrowEntity nestBuilder = this;
         if (other instanceof CrowEntity otherCrow) {
             otherCrow.setAge(CrowBehaviorPolicy.BREEDING_COOLDOWN_TICKS);
             otherCrow.resetLove();
-            // A single parent seeks a nest so one courtship cannot fill two nests.
             otherCrow.setInMatingState(false);
+            if (nestSite == null) {
+                nestSite = com.crowbuddy.entity.ai.goal.CrowNestBuildGoal.findNearestBuildSite(otherCrow);
+                nestBuilder = otherCrow;
+            }
+        }
+        // Bind the destination during breeding rather than waiting for a later goal
+        // scheduler pass. Exactly one parent receives the assignment.
+        if (nestSite != null && nestBuilder.nestBuildGoal != null) {
+            nestBuilder.setInMatingState(true);
+            nestBuilder.nestBuildGoal.assignTarget(nestSite);
+        } else {
+            this.setInMatingState(false);
+            CrowBuddy.LOGGER.warn("Crow breeding completed but no valid nest site remained");
         }
         serverLevel.sendParticles(
             net.minecraft.core.particles.ParticleTypes.HEART,
@@ -587,6 +644,14 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
                 state.setAndContinue(RawAnimation.begin().thenPlay("land"));
                 return PlayState.CONTINUE;
             }
+        }
+
+        // A nest-seeking crow may still touch the ground during takeoff or while
+        // clearing terrain. Keep visible locomotion instead of sliding in the air pose.
+        if (CrowBehaviorPolicy.shouldHopWhileNestSeeking(
+                this.isInMatingState(), this.isAirborne(), this.onGround(), state.isMoving())) {
+            state.setAndContinue(RawAnimation.begin().thenLoop("hop"));
+            return PlayState.CONTINUE;
         }
 
         // Airborne

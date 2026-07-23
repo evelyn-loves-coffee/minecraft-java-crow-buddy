@@ -16,11 +16,12 @@ import net.minecraft.world.phys.Vec3;
 import java.util.EnumSet;
 
 public class CrowNestBuildGoal extends Goal {
-    public static final int SEARCH_RADIUS = 24;
+    public static final int SEARCH_RADIUS = 48;
     private static final int SEARCH_INTERVAL = 100;
     private static final double ARRIVAL_DISTANCE_SQ = 1.44;
     private static final double TERRAIN_CLEARANCE = 2.0;
     private static final int CLEARANCE_SEARCH_RADIUS = 8;
+    private static final double GROUNDED_HOP_VELOCITY = 0.42;
     private static final int[][] CLEARANCE_DIRECTIONS = {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1},
         {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
@@ -44,12 +45,19 @@ public class CrowNestBuildGoal extends Goal {
     private FlightPhase flightPhase = FlightPhase.DIRECT;
     private Vec3 clearanceWaypoint;
     private double cruiseAltitude;
+    private Vec3 lastProgressPosition;
+    private int stalledTicks;
 
     public CrowNestBuildGoal(CrowEntity crow, double speed, int timeoutTicks) {
         this.crow = crow;
         this.speed = speed;
         this.timeoutTicks = timeoutTicks;
-        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
+        this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));
+    }
+
+    public void assignTarget(BlockPos targetPos) {
+        this.targetPos = targetPos;
+        this.lastSearchTick = this.crow.level().getGameTime();
     }
 
     @Override
@@ -74,6 +82,8 @@ public class CrowNestBuildGoal extends Goal {
     public void start() {
         this.ticksElapsed = 0;
         this.finished = false;
+        this.lastProgressPosition = this.crow.position();
+        this.stalledTicks = 0;
         this.navigateToTarget();
     }
 
@@ -92,6 +102,10 @@ public class CrowNestBuildGoal extends Goal {
         if (!isValidBuildSite(this.crow.level() instanceof ServerLevel serverLevel ? serverLevel : null,
                 this.targetPos)) {
             this.targetPos = null;
+            // A nearby pair can claim the same exposed leaf between selection and
+            // arrival. Bypass the normal polling throttle so this crow immediately
+            // chooses the next valid canopy position instead of appearing to abort.
+            this.lastSearchTick = -SEARCH_INTERVAL;
             this.refreshTargetIfDue();
             if (this.targetPos == null) {
                 this.crow.getNavigation().stop();
@@ -102,6 +116,7 @@ public class CrowNestBuildGoal extends Goal {
 
         if (this.flying) {
             this.flyTowardTarget();
+            this.recoverIfStalled();
         }
         double distSq = this.crow.distanceToSqr(
             this.targetPos.getX() + 0.5,
@@ -130,6 +145,8 @@ public class CrowNestBuildGoal extends Goal {
         this.flightPhase = FlightPhase.DIRECT;
         this.clearanceWaypoint = null;
         this.cruiseAltitude = 0.0;
+        this.lastProgressPosition = null;
+        this.stalledTicks = 0;
     }
 
     private void refreshTargetIfDue() {
@@ -148,17 +165,20 @@ public class CrowNestBuildGoal extends Goal {
 
     private void navigateToTarget() {
         if (this.targetPos == null) return;
-        this.crow.getNavigation().stop();
         this.flying = true;
-        this.crow.setAirborne(true);
-        this.crow.triggerTakeoffAnimation();
         this.planFlightApproach();
+        Vec3 launchTarget = this.clearanceWaypoint != null
+            ? this.clearanceWaypoint
+            : Vec3.atCenterOf(this.targetPos);
+        this.crow.launchToward(launchTarget, 0.16);
     }
 
     private void flyTowardTarget() {
         Vec3 target;
         if (this.flightPhase == FlightPhase.CLEAR_UNDERSIDE && this.clearanceWaypoint != null) {
-            target = this.clearanceWaypoint;
+            // Maintain lift while moving out from under a canopy. The old downward
+            // clamp turned this phase into ground sliding.
+            target = this.clearanceWaypoint.add(0.0, 0.75, 0.0);
             if (horizontalDistanceSqr(this.crow.position(), target) <= 0.36) {
                 this.flightPhase = FlightPhase.CLIMB;
                 target = new Vec3(target.x, this.cruiseAltitude, target.z);
@@ -184,12 +204,33 @@ public class CrowNestBuildGoal extends Goal {
         if (delta.lengthSqr() < 0.01) return;
         Vec3 desired = delta.normalize().scale(0.28);
         Vec3 movement = this.crow.getDeltaMovement().scale(0.68).add(desired.scale(0.32));
-        if (this.flightPhase == FlightPhase.CLEAR_UNDERSIDE) {
-            movement = new Vec3(movement.x, Math.min(0.0, movement.y), movement.z);
+        // Manual flight steering does not use vanilla path navigation, so it cannot
+        // step over even a one-block obstacle by itself. A standard jump-strength
+        // impulse gets a ground-contacting crow airborne while flight remains the
+        // preferred travel mode.
+        if (this.crow.onGround()) {
+            movement = new Vec3(movement.x, Math.max(GROUNDED_HOP_VELOCITY, movement.y), movement.z);
         }
         this.crow.setDeltaMovement(movement);
         this.crow.getLookControl().setLookAt(
             target.x, target.y, target.z, 12.0f, this.crow.getMaxHeadXRot());
+    }
+
+    private void recoverIfStalled() {
+        if (this.lastProgressPosition == null
+                || this.crow.position().distanceToSqr(this.lastProgressPosition) >= 0.04) {
+            this.lastProgressPosition = this.crow.position();
+            this.stalledTicks = 0;
+            return;
+        }
+        if (++this.stalledTicks < 20) return;
+        this.stalledTicks = 0;
+        this.lastProgressPosition = this.crow.position();
+        this.planFlightApproach();
+        Vec3 movement = this.crow.getDeltaMovement();
+        this.crow.setDeltaMovement(movement.x, Math.max(GROUNDED_HOP_VELOCITY, movement.y), movement.z);
+        com.crowbuddy.CrowBuddy.LOGGER.debug(
+            "Crow {} replanned a stalled nest approach to {}", this.crow.getId(), this.targetPos);
     }
 
     private void planFlightApproach() {
