@@ -99,6 +99,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         return TamableAnimal.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 10.0)
             .add(Attributes.MOVEMENT_SPEED, 0.25)
+            .add(Attributes.STEP_HEIGHT, 1.0)
             .add(Attributes.FOLLOW_RANGE, 24.0)
             .add(Attributes.TEMPT_RANGE, TEMPT_RANGE_BLOCKS)
             .add(Attributes.ATTACK_DAMAGE, 2.0);
