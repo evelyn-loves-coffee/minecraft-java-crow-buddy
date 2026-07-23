@@ -40,6 +40,7 @@ public final class CrowFlightGoal extends Goal {
         this.followTarget = distantOwner();
         this.threat = recentThreat();
         if (this.followTarget != null || this.threat != null) return true;
+        if (!this.crow.getCarriedItem().isEmpty()) return false;
         if (this.crow.getRandom().nextInt(RANDOM_FLIGHT_CHANCE) != 0) return false;
         this.randomTarget = randomFlightTarget();
         return true;
@@ -106,7 +107,9 @@ public final class CrowFlightGoal extends Goal {
     private LivingEntity distantOwner() {
         LivingEntity owner = this.crow.getOwner();
         if (owner == null || !owner.isAlive()) return null;
-        double startDistanceSq = this.crow.isBaby() ? 64.0 : 144.0;
+        double startDistanceSq = !this.crow.getCarriedItem().isEmpty()
+            ? CrowBehaviorPolicy.DELIVERY_DISTANCE_SQ
+            : (this.crow.isBaby() ? 64.0 : 144.0);
         return this.crow.distanceToSqr(owner) > startDistanceSq ? owner : null;
     }
 
@@ -124,7 +127,9 @@ public final class CrowFlightGoal extends Goal {
 
     private boolean hasArrived() {
         if (this.followTarget != null) {
-            double stopDistanceSq = this.crow.isBaby() ? 25.0 : 36.0;
+            double stopDistanceSq = !this.crow.getCarriedItem().isEmpty()
+                ? CrowBehaviorPolicy.DELIVERY_DISTANCE_SQ
+                : (this.crow.isBaby() ? 25.0 : 36.0);
             return this.crow.distanceToSqr(this.followTarget) <= stopDistanceSq;
         }
         return this.randomTarget != null && this.crow.position().distanceToSqr(this.randomTarget) <= 4.0;
