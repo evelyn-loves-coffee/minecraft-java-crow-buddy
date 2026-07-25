@@ -29,6 +29,7 @@ public class CrowBuddy implements ModInitializer {
 		CrowEventHub.registerEvents();
 		CrowSpawning.initialize();
 		ServerLevelEvents.UNLOAD.register(SwarmManager::remove);
+		ServerLevelEvents.UNLOAD.register((server, level) -> com.crowbuddy.goal.ScavengeRegistry.remove(level));
 	}
 
 	public static Identifier id(String path) {

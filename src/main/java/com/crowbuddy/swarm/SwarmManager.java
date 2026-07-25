@@ -247,7 +247,7 @@ public class SwarmManager {
         setCooldown(crowId, currentTick);
     }
 
-    private void recordEscalationHit(int crowId, long gameTick) {
+    private synchronized void recordEscalationHit(int crowId, long gameTick) {
         List<Long> history = escalationHistory.computeIfAbsent(
             crowId, k -> new CopyOnWriteArrayList<>()
         );
@@ -255,7 +255,7 @@ public class SwarmManager {
         history.add(gameTick);
     }
 
-    private int getEscalationCount(int crowId, long gameTick) {
+    private synchronized int getEscalationCount(int crowId, long gameTick) {
         List<Long> history = escalationHistory.get(crowId);
         if (history == null) {
             return 0;

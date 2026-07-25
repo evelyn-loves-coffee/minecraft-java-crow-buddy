@@ -43,10 +43,6 @@ public class ScavengeGoal extends Goal {
     private ItemEntity targetItem;
     private long nextSearchTick;
     private int seekTicks;
-    private double flightAltitude;
-    private net.minecraft.world.phys.Vec3 lastProgressPosition;
-    private int stalledTicks;
-    private boolean groundApproach;
 
     public ScavengeGoal(CrowEntity crow) {
         this.crow = crow;
@@ -68,6 +64,10 @@ public class ScavengeGoal extends Goal {
         ServerLevel level = getServerLevel(this.crow);
         if (level == null) return false;
         this.targetItem = findBestItem(level);
+        if (this.targetItem != null && !ScavengeRegistry.get(level).claim(
+                this.targetItem.getId(), this.crow.getId())) {
+            this.targetItem = null;
+        }
         if (this.targetItem == null) {
             this.nextSearchTick = this.crow.level().getGameTime() + reducedTickDelay(20);
             return false;
@@ -79,9 +79,7 @@ public class ScavengeGoal extends Goal {
     public void start() {
         this.seekTicks = 0;
         this.crow.setState(CrowState.SEARCHING);
-        this.lastProgressPosition = this.crow.position();
-        this.stalledTicks = 0;
-        this.beginTargetApproach(true);
+        this.beginTargetApproach();
         com.crowbuddy.CrowBuddy.LOGGER.debug(
             "Crow {} began scavenging {} at {}",
             this.crow.getId(), this.targetItem.getItem(), this.targetItem.blockPosition());
@@ -91,15 +89,7 @@ public class ScavengeGoal extends Goal {
     public void tick() {
         this.seekTicks++;
         if (this.targetItem == null || !this.targetItem.isAlive()) return;
-        this.recoverStalledFlight();
         if (this.crow.distanceToSqr(this.targetItem) > PICKUP_DISTANCE_SQ) {
-            if (this.groundApproach) {
-                if (this.seekTicks % adjustedTickDelay(10) == 0) {
-                    this.crow.getNavigation().moveTo(this.targetItem, MOVE_SPEED);
-                }
-            } else {
-                this.flyTowardItem();
-            }
             return;
         }
         this.collectFromTarget();
@@ -146,7 +136,8 @@ public class ScavengeGoal extends Goal {
         if (this.targetItem == null) {
             this.finishCollection(updated);
         } else {
-            this.beginTargetApproach(true);
+            ScavengeRegistry.get(serverLevel).claim(this.targetItem.getId(), this.crow.getId());
+            this.beginTargetApproach();
             com.crowbuddy.CrowBuddy.LOGGER.debug(
                 "Crow {} continuing collection of {} at {} ({}/{})",
                 this.crow.getId(), updated.getItem(), this.targetItem.blockPosition(),
@@ -155,18 +146,17 @@ public class ScavengeGoal extends Goal {
     }
 
     private void finishCollection(ItemStack carried) {
+        ScavengeRegistry.get(this.crow.level()).releaseAll(this.crow.getId());
         this.crow.setState(CrowState.CARRYING);
         this.targetItem = null;
-        this.lastProgressPosition = null;
-        this.stalledTicks = 0;
-        this.groundApproach = false;
         com.crowbuddy.CrowBuddy.LOGGER.debug(
             "Crow {} completed collection with {}", this.crow.getId(), carried);
     }
 
     @Override
     public void stop() {
-        this.crow.getNavigation().stop();
+        ScavengeRegistry.get(this.crow.level()).releaseAll(this.crow.getId());
+        this.crow.getCrowNavigator().clear(this.crow);
         if (this.crow.isAirborne()) {
             this.crow.setAirborne(false);
             this.crow.triggerLandAnimation();
@@ -200,67 +190,9 @@ public class ScavengeGoal extends Goal {
         return true;
     }
 
-    private void flyTowardItem() {
-        boolean ascending = CrowBehaviorPolicy.shouldAscendBeforeScavenging(
-            this.seekTicks, this.crow.getY(), this.flightAltitude);
-        double dx = this.targetItem.getX() - this.crow.getX();
-        double dz = this.targetItem.getZ() - this.crow.getZ();
-        double horizontalDistanceSq = dx * dx + dz * dz;
-        double targetY = CrowBehaviorPolicy.scavengeFlightTargetY(
-            this.seekTicks, horizontalDistanceSq, this.flightAltitude, this.targetItem.getY());
-        var target = ascending
-            ? new net.minecraft.world.phys.Vec3(
-                this.crow.getX(), this.flightAltitude, this.crow.getZ())
-            : new net.minecraft.world.phys.Vec3(
-                this.targetItem.getX(), targetY, this.targetItem.getZ());
-        var delta = target.subtract(this.crow.position());
-        if (delta.lengthSqr() < 0.01) return;
-        var desired = delta.normalize().scale(0.28 * MOVE_SPEED);
-        var movement = this.crow.getDeltaMovement().scale(0.68).add(desired.scale(0.32));
-        if (this.crow.onGround()) {
-            movement = new net.minecraft.world.phys.Vec3(
-                movement.x, Math.max(0.42, movement.y), movement.z);
-        }
-        this.crow.setDeltaMovement(movement);
-        this.crow.getLookControl().setLookAt(
-            target.x, target.y, target.z, 12.0f, this.crow.getMaxHeadXRot());
-    }
-
-    private void beginTargetApproach(boolean allowGroundHop) {
-        double dx = this.targetItem.getX() - this.crow.getX();
-        double dz = this.targetItem.getZ() - this.crow.getZ();
-        this.groundApproach = allowGroundHop && CrowBehaviorPolicy.shouldUseGroundHop(
-            this.targetItem.getY() - this.crow.getY(), dx * dx + dz * dz);
-        if (this.groundApproach) {
-            this.crow.setAirborne(false);
-            this.crow.getNavigation().moveTo(this.targetItem, MOVE_SPEED);
-            return;
-        }
-
-        this.flightAltitude = Math.max(
-            this.crow.getY() + 3.5, this.targetItem.getY() + 2.5);
+    private void beginTargetApproach() {
         this.seekTicks = 0;
-        this.crow.launchToward(
-            new net.minecraft.world.phys.Vec3(
-                this.crow.getX(), this.flightAltitude, this.crow.getZ()),
-            0.0, 0.60);
-    }
-
-    private void recoverStalledFlight() {
-        if (this.lastProgressPosition == null
-                || this.crow.position().distanceToSqr(this.lastProgressPosition) >= 0.04) {
-            this.lastProgressPosition = this.crow.position();
-            this.stalledTicks = 0;
-            return;
-        }
-        if (++this.stalledTicks < 15) return;
-
-        this.stalledTicks = 0;
-        this.lastProgressPosition = this.crow.position();
-        this.beginTargetApproach(false);
-        com.crowbuddy.CrowBuddy.LOGGER.debug(
-            "Crow {} relaunched stalled scavenging flight toward {} at altitude {}",
-            this.crow.getId(), this.targetItem.blockPosition(), this.flightAltitude);
+        this.crow.getCrowNavigator().navigateTo(this.crow, this.targetItem, MOVE_SPEED);
     }
 
     private ItemEntity findBestItem(ServerLevel level) {
