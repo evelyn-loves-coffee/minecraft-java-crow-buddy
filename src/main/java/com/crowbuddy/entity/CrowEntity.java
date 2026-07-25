@@ -579,6 +579,15 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     private PlayState behaviorPredicate(AnimationTest<CrowEntity> state) {
+        // Sitting is a persistent, synchronized pose and must supersede transient
+        // behavior animations. Clear client-local one-shot bookkeeping so standing
+        // cannot resume an animation that began before the sit command.
+        if (this.isInSittingPose()) {
+            this.behaviorControllerActive = false;
+            this.oneShotStartTick = -1;
+            this.begUntilTick = -1;
+            return PlayState.STOP;
+        }
         if (this.behaviorControllerActive) {
             if (this.tickCount - this.oneShotStartTick >= this.getOneShotDuration()) {
                 this.behaviorControllerActive = false;
@@ -588,10 +597,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return PlayState.CONTINUE;
         }
         boolean isBaby = this.isBaby();
-        if (isBaby && this.isInSittingPose()) {
-            state.setAndContinue(RawAnimation.begin().thenLoop("sleep"));
-            return PlayState.CONTINUE;
-        }
         if (isBaby && this.tickCount < this.begUntilTick) {
             state.setAndContinue(RawAnimation.begin().thenLoop("beg"));
             return PlayState.CONTINUE;
@@ -641,10 +646,11 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     }
 
     private PlayState movementPredicate(AnimationTest<CrowEntity> state) {
-        if (this.behaviorControllerActive) {
-            return PlayState.STOP;
-        }
         if (this.isInSittingPose()) {
+            state.setAndContinue(RawAnimation.begin().thenLoop("sit"));
+            return PlayState.CONTINUE;
+        }
+        if (this.behaviorControllerActive) {
             return PlayState.STOP;
         }
         boolean isBaby = this.isBaby();
