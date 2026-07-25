@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Quaternionf;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,9 @@ import java.util.List;
 /** Renders the scavenged item in the beak and a floating seed feeding prompt. */
 final class CrowCarriedItemLayer
         extends BlockAndItemGeoLayer<CrowEntity, Void, LivingEntityRenderState> {
-    private static final String MOUTH_BONE = "upper_beak";
+    // The lower-beak pivot lies at the seam between the upper and lower beak
+    // for both models, making it a stable attachment point for held items.
+    private static final String MOUTH_BONE = "lower_beak";
 
     CrowCarriedItemLayer(EntityRendererProvider.Context context,
                          GeoRenderer<CrowEntity, Void, LivingEntityRenderState> renderer) {
@@ -59,8 +62,12 @@ final class CrowCarriedItemLayer
                                          LivingEntityRenderState renderState,
                                          SubmitNodeCollector collector, int packedLight) {
         poseStack.pushPose();
-        poseStack.translate(0.0, 0.05, -0.12);
-        poseStack.scale(0.35f, 0.35f, 0.35f);
+        poseStack.translate(0.0, 0.0, -0.38);
+        // Item ground models stand vertically in this bone space by default.
+        // Rotate their vertical axis onto the beak's forward axis so the item
+        // projects out of the mouth instead of rising above it.
+        poseStack.mulPose(new Quaternionf().rotationX((float) (Math.PI * 0.5)));
+        poseStack.scale(0.7f, 0.7f, 0.7f);
         super.submitItemStackRender(
             poseStack, bone, itemState, displayContext, renderState, collector, packedLight);
         poseStack.popPose();
