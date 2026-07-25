@@ -54,20 +54,19 @@ public final class CrowFlightGoal extends Goal {
 
     @Override
     public void start() {
-        this.crow.getNavigation().stop();
         this.flightTicks = 0;
         this.takeoffY = this.crow.getY();
         this.landing = false;
-        Vec3 motion = this.crow.getDeltaMovement();
-        Vec3 horizontal = new Vec3(motion.x, 0, motion.z);
-        if (horizontal.horizontalDistanceSqr() < 0.0025) {
-            horizontal = Vec3.directionFromRotation(0, this.crow.getYRot()).scale(0.12);
-        } else {
-            horizontal = horizontal.normalize().scale(this.crow.isBaby() ? 0.12 : 0.16);
+        if (this.threat != null) {
+            double x = this.crow.getX() + (this.crow.getX() - this.threat.getX());
+            double z = this.crow.getZ() + (this.crow.getZ() - this.threat.getZ());
+            this.crow.getCrowNavigator().navigateTo(this.crow,
+                new Vec3(x, this.takeoffY + relativeHeightLimit() * 0.6, z), 1.0);
+        } else if (this.followTarget != null) {
+            this.crow.getCrowNavigator().navigateTo(this.crow, this.followTarget, 1.0);
+        } else if (this.randomTarget != null) {
+            this.crow.getCrowNavigator().navigateTo(this.crow, this.randomTarget, 1.0);
         }
-        this.crow.setDeltaMovement(horizontal.x, this.crow.isBaby() ? 0.30 : 0.42, horizontal.z);
-        this.crow.setAirborne(true);
-        this.crow.triggerTakeoffAnimation();
     }
 
     @Override
@@ -76,16 +75,11 @@ public final class CrowFlightGoal extends Goal {
         int maxTicks = this.crow.isBaby() ? BABY_MAX_FLIGHT_TICKS : ADULT_MAX_FLIGHT_TICKS;
         if (!this.landing && (this.flightTicks >= maxTicks || hasArrived() || !hasValidPurpose())) {
             this.landing = true;
+            this.crow.getCrowNavigator().clear(this.crow);
         }
 
         if (this.landing) {
             descend();
-        } else if (this.threat != null) {
-            steerAwayFrom(this.threat);
-        } else if (this.followTarget != null) {
-            steerTowards(this.followTarget.getX(), this.followTarget.getY() + 1.25, this.followTarget.getZ());
-        } else if (this.randomTarget != null) {
-            steerTowards(this.randomTarget.x, this.randomTarget.y, this.randomTarget.z);
         }
 
         if (this.crow.onGround() && this.flightTicks > 4) {
@@ -95,6 +89,7 @@ public final class CrowFlightGoal extends Goal {
 
     @Override
     public void stop() {
+        this.crow.getCrowNavigator().clear(this.crow);
         finishLanding();
         this.followTarget = null;
         this.threat = null;
@@ -160,23 +155,6 @@ public final class CrowFlightGoal extends Goal {
         return Vec3.atBottomCenterOf(bestSurface).add(0.0, height, 0.0);
     }
 
-    private void steerAwayFrom(LivingEntity entity) {
-        double x = this.crow.getX() + (this.crow.getX() - entity.getX());
-        double z = this.crow.getZ() + (this.crow.getZ() - entity.getZ());
-        steerTowards(x, this.takeoffY + relativeHeightLimit() * 0.6, z);
-    }
-
-    private void steerTowards(double x, double y, double z) {
-        Vec3 delta = new Vec3(x - this.crow.getX(), y - this.crow.getY(), z - this.crow.getZ());
-        if (delta.lengthSqr() < 0.01) return;
-        Vec3 desired = delta.normalize().scale(this.crow.isBaby() ? 0.20 : 0.32);
-        Vec3 current = this.crow.getDeltaMovement();
-        Vec3 next = current.scale(0.78).add(desired.scale(0.22));
-        double ceiling = this.takeoffY + relativeHeightLimit();
-        if (this.crow.getY() > ceiling) next = new Vec3(next.x, Math.min(next.y, -0.04), next.z);
-        this.crow.setDeltaMovement(next);
-    }
-
     private double relativeHeightLimit() {
         return this.crow.isBaby() ? 4.0 : 8.0;
     }
@@ -188,6 +166,7 @@ public final class CrowFlightGoal extends Goal {
 
     private void finishLanding() {
         if (!this.crow.isAirborne()) return;
+        this.crow.getCrowNavigator().clear(this.crow);
         this.crow.setAirborne(false);
         this.crow.triggerLandAnimation();
         Vec3 current = this.crow.getDeltaMovement();

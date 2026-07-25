@@ -39,8 +39,12 @@ import com.crowbuddy.goal.CrowFlightGoal;
 import com.crowbuddy.goal.HigherGroundStrollGoal;
 import com.crowbuddy.goal.ScavengeGoal;
 import com.crowbuddy.goal.SwarmDistressGoal;
+import com.crowbuddy.goal.CrowTemptGoal;
 import com.crowbuddy.item.ModItems;
 import com.crowbuddy.swarm.SwarmManager;
+import com.crowbuddy.entity.ai.navigation.AStarPathfinder;
+import com.crowbuddy.entity.ai.navigation.CrowNavigator;
+import com.crowbuddy.entity.ai.navigation.DefaultTerrainSampler;
 
 public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private static final TagKey<Item> PARROT_POISONOUS = TagKey.create(
@@ -78,6 +82,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     private int nextBegTick = 0;
     private int nextPreenTick = 0;
     private boolean directedFlight;
+    private final CrowNavigator crowNavigator;
     private static final int PECK_DURATION_TICKS = 8;
     private static final int CAW_DURATION_TICKS = 15;
     private static final int PREEN_DURATION_TICKS = 46;
@@ -93,6 +98,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
     public CrowEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
+        this.crowNavigator = new CrowNavigator(
+            new AStarPathfinder(new DefaultTerrainSampler(), 4));
+    }
+
+    public CrowNavigator getCrowNavigator() {
+        return this.crowNavigator;
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -118,8 +129,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.BreedGoal(this, 1.0, CrowEntity.class));
         this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.FollowOwnerGoal(
             this, 1.0, 6.0f, 10.0f));
-        this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.TemptGoal(
-            this, 1.25, itemStack -> this.isFood(itemStack), false));
+        this.goalSelector.addGoal(4, new CrowTemptGoal(this, 1.25));
         this.goalSelector.addGoal(4, new net.minecraft.world.entity.ai.goal.FollowParentGoal(this, 1.0));
         this.goalSelector.addGoal(6, new HigherGroundStrollGoal(this, 1.0));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0f));
@@ -445,11 +455,19 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     public void tick() {
         super.tick();
+        if (!this.level().isClientSide()) {
+            this.crowNavigator.tick(this);
+        }
         if (this.isAirborne()) {
             if (!this.level().isClientSide() && !this.directedFlight) {
                 this.maintainForwardFlightMomentum();
             }
             this.alignBodyWithFlight();
+            if (!this.level().isClientSide() && this.onGround()
+                    && this.getDeltaMovement().lengthSqr() < 0.0025) {
+                this.setAirborne(false);
+                this.triggerLandAnimation();
+            }
         }
         if (this.level().isClientSide()) {
             return;
@@ -462,6 +480,12 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             this.setDeltaMovement(this.getDeltaMovement().multiply(0.5, 0.25, 0.5));
             return;
         }
+    }
+
+    @Override
+    public void remove(net.minecraft.world.entity.Entity.RemovalReason reason) {
+        this.crowNavigator.clear(this);
+        super.remove(reason);
     }
 
     private void maintainForwardFlightMomentum() {

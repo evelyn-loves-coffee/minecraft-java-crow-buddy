@@ -8,7 +8,6 @@ import com.crowbuddy.swarm.SwarmManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import java.util.EnumSet;
@@ -131,6 +130,7 @@ public class SwarmDistressGoal extends Goal {
 
     @Override
     public void stop() {
+        this.crow.getCrowNavigator().clear(this.crow);
         this.crow.setState(CrowState.IDLE);
         this.target = null;
         this.lastHitTime = 0;
@@ -165,7 +165,7 @@ public class SwarmDistressGoal extends Goal {
         double distSq = this.crow.distanceToSqr(this.target);
 
         if (distSq <= ATTACK_RANGE_SQ) {
-            this.crow.getNavigation().stop();
+            this.crow.getCrowNavigator().clear(this.crow);
             performAttack();
         } else {
             navigateToTarget();
@@ -189,9 +189,9 @@ public class SwarmDistressGoal extends Goal {
     }
 
     private void navigateToTarget() {
-        PathNavigation navigation = (PathNavigation) this.crow.getNavigation();
-        float speed = 1.0f;
-        navigation.moveTo(this.target, speed);
+        if (!this.crow.getCrowNavigator().hasPath()) {
+            this.crow.getCrowNavigator().navigateTo(this.crow, this.target, 1.0);
+        }
     }
 
     private void performAttack() {

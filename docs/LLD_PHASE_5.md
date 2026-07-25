@@ -228,10 +228,33 @@ if (horizontalDistance < 8 && verticalDistance < 3) {
 ### Implementation Notes & PAWS Fixes
 
 #### Completed Implementation
-- Sections 1-5 fully implemented: TerrainSampler, AStarPathfinder, FlightNavigator, CrowNavigator, goal refactors, SwarmManager fixes, ScavengeRegistry
+- Implemented on 2026-07-23 and verified against Minecraft 26.2 mappings: `TerrainSampler`, bounded `AStarPathfinder`, `FlightNavigator`, entity-owned `CrowNavigator`, tick-based `CrowPathCache`, and `ScavengeRegistry`.
 - All 5 custom goals refactored to use CrowNavigator (ScavengeGoal, CrowFlightGoal, SwarmDistressGoal, HigherGroundStrollGoal, CrowNestBuildGoal)
-- CrowEntity holds CrowNavigator field with DefaultFlightNavigator(AStarPathfinder(DefaultTerrainSampler(), 4))
-- Build verified successful
+- Goals retain lifecycle-only takeoff/landing velocity changes, but no longer implement travel steering or issue path-navigation requests.
+- `CrowEntity` owns `CrowNavigator(new AStarPathfinder(new DefaultTerrainSampler(), 4))`, ticks it server-side, and clears it on removal.
+- Dynamic entity targets are refreshed after moving more than one block; paths expire after 40 game ticks and replan after 20 ticks without measurable progress.
+- A* uses 26 three-dimensional neighbors, block-by-block edge validation, a 1.5x vertical cost multiplier, line-of-sight smoothing, and a hard 2,000-node expansion limit.
+- `ScavengeRegistry` uses atomic per-dimension claims and unload cleanup. `SwarmManager` serializes compound escalation-history mutations.
+- `./gradlew clean build --warning-mode all` passed with 38 tests, zero failures, and zero errors.
+
+#### Runtime Flow (HLD to LLD Trace)
+
+1. A goal selects a destination and calls `CrowNavigator.navigateTo`.
+2. `CrowNavigator` applies the confirmed hop thresholds or requests a cached/new 3D flight path.
+3. `AStarPathfinder` samples every coarse-grid edge through `TerrainSampler`; solids, leaves, fluids, world-border positions, and build-height violations are rejected.
+4. `CrowNavigator.tick` follows smoothed waypoints with momentum blending and triggers bounded replanning on target movement, TTL expiry on the next request, or a stall.
+5. Goal stop, sitting, landing, attack range, and entity removal clear navigation ownership.
+
+#### Remaining Empirical Verification
+
+- The automated suite proves direct-path selection, vertical obstacle routing, planner configuration validation, atomic scavenge claims, and existing behavior policies/state machines.
+- In-game GameTests are still needed for entity-sized clearance, moving-target combat, dense-canopy escape, goal preemption, chunk-edge behavior, and visible hop/flight transitions. The planner deliberately falls back to the exact target when its bounded search finds no path; this preserves behavior liveness but must be observed in adversarial terrain.
+
+#### Post-Integration Targeting Corrections
+
+- `CrowNestBuildGoal` now acquires the `MOVE` control only after it has a valid nest position. Previously, a mating crow with no selected site could reserve movement for the full timeout while remaining stationary.
+- Food temptation now selects the nearest actually-tempting player and delegates movement to `CrowNavigator`, rather than mixing vanilla ground navigation with shared flight state.
+- Flight arrival clears `AIRBORNE`/no-gravity and triggers landing. A grounded low-velocity safety check repairs stale airborne state from interrupted goals.
 
 #### PAWS P1 Fixes Applied
 1. **CrowPathCache TTL**: Converted from System.currentTimeMillis() to game-tick-based (getGameTime()) to avoid desync across server restarts
