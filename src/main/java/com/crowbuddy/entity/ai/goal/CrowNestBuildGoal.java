@@ -1,6 +1,7 @@
 package com.crowbuddy.entity.ai.goal;
 
 import com.crowbuddy.block.entity.CrowNestBlockEntity;
+import com.crowbuddy.entity.CrowBehaviorPolicy;
 import com.crowbuddy.entity.CrowEntity;
 import com.crowbuddy.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -41,8 +42,7 @@ public class CrowNestBuildGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (this.crow.isBaby() || !this.crow.isInMatingState()
-                || this.crow.isInSittingPose() || this.crow.isOrderedToSit()) {
+        if (!canBuildNest()) {
             return false;
         }
         this.refreshTargetIfDue();
@@ -51,11 +51,15 @@ public class CrowNestBuildGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return this.crow.isInMatingState()
+        return canBuildNest()
             && this.targetPos != null
-            && !this.crow.isInSittingPose()
-            && !this.crow.isOrderedToSit()
             && this.ticksElapsed < this.timeoutTicks;
+    }
+
+    private boolean canBuildNest() {
+        return CrowBehaviorPolicy.canBuildNest(
+            this.crow.isTame(), this.crow.isBaby(), this.crow.isInMatingState(),
+            this.crow.isInSittingPose() || this.crow.isOrderedToSit());
     }
 
     @Override
@@ -144,7 +148,8 @@ public class CrowNestBuildGoal extends Goal {
     }
 
     private void buildNest() {
-        if (!(this.crow.level() instanceof ServerLevel serverLevel)
+        if (!canBuildNest()
+                || !(this.crow.level() instanceof ServerLevel serverLevel)
                 || !isValidBuildSite(serverLevel, this.targetPos)) {
             this.targetPos = null;
             return;

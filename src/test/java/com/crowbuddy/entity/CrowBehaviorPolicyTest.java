@@ -160,6 +160,15 @@ class CrowBehaviorPolicyTest {
     }
 
     @Test
+    void nestConstructionRequiresATamedAdultInTheBreedingFlow() {
+        assertTrue(CrowBehaviorPolicy.canBuildNest(true, false, true, false));
+        assertFalse(CrowBehaviorPolicy.canBuildNest(false, false, true, false));
+        assertFalse(CrowBehaviorPolicy.canBuildNest(true, true, true, false));
+        assertFalse(CrowBehaviorPolicy.canBuildNest(true, false, false, false));
+        assertFalse(CrowBehaviorPolicy.canBuildNest(true, false, true, true));
+    }
+
+    @Test
     void nestTramplingRequiresAnEligibleEntityAndSuccessfulRoll() {
         assertTrue(CrowBehaviorPolicy.canTrampleNest(false, true, false, true, false));
         assertTrue(CrowBehaviorPolicy.canTrampleNest(false, true, false, false, true));
