@@ -8,6 +8,7 @@ public final class CrowBehaviorPolicy {
     public static final int MAX_SCAVENGE_STACK_SIZE = 8;
     public static final int MAX_SCAVENGE_TAKEOFF_TICKS = 40;
     public static final double DELIVERY_DISTANCE_SQ = 6.25;
+    public static final double PAYMENT_PROMPT_RANGE = 10.0;
     public static final float SATIATION_DECAY_PER_TICK = 0.00005f;
     public static final float MIN_SCAVENGE_SATIATION = 0.05f;
     /** A seed restores 0.25 satiation, so reject it when any of that benefit would overflow. */
@@ -74,6 +75,12 @@ public final class CrowBehaviorPolicy {
     public static boolean shouldAcceptDeliveryPayment(boolean carrying, boolean tame,
                                                        boolean ownedByPlayer, boolean food) {
         return carrying && tame && ownedByPlayer && food;
+    }
+
+    public static boolean shouldShowPaymentPrompt(boolean tame, boolean playerNearby,
+                                                   boolean carrying, float satiation) {
+        return tame && playerNearby
+            && (carrying || satiation < MIN_SCAVENGE_SATIATION);
     }
 
     public static boolean shouldConsumeFood(float satiation, boolean carrying) {

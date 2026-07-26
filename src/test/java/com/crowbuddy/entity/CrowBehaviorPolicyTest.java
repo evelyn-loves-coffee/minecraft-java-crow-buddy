@@ -97,6 +97,16 @@ class CrowBehaviorPolicyTest {
     }
 
     @Test
+    void paymentPromptRequiresTamedCrowAndNearbyPlayer() {
+        assertTrue(CrowBehaviorPolicy.shouldShowPaymentPrompt(true, true, true, 1.0f));
+        assertTrue(CrowBehaviorPolicy.shouldShowPaymentPrompt(true, true, false, 0.049f));
+        assertFalse(CrowBehaviorPolicy.shouldShowPaymentPrompt(false, true, true, 0.0f));
+        assertFalse(CrowBehaviorPolicy.shouldShowPaymentPrompt(true, false, true, 0.0f));
+        assertFalse(CrowBehaviorPolicy.shouldShowPaymentPrompt(true, true, false, 0.05f));
+        assertEquals(10.0, CrowBehaviorPolicy.PAYMENT_PROMPT_RANGE, 0.0001);
+    }
+
+    @Test
     void fullCrowsOnlyAcceptFoodToReleaseACarriedItem() {
         assertFalse(CrowBehaviorPolicy.shouldConsumeFood(1.0f, false));
         assertFalse(CrowBehaviorPolicy.shouldConsumeFood(0.999f, false));
