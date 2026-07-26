@@ -1,14 +1,8 @@
 package com.crowbuddy.client.renderer;
 
-import com.crowbuddy.CrowBuddy;
 import com.crowbuddy.client.model.CrowGeoModel;
 import com.crowbuddy.entity.CrowEntity;
 import com.crowbuddy.entity.CrowBehaviorPolicy;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.geckolib.renderer.GeoEntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
@@ -17,10 +11,8 @@ import com.geckolib.renderer.base.GeoRenderState;
 import com.geckolib.util.RenderUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -30,18 +22,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.RandomSource;
 
 public class CrowRenderer extends GeoEntityRenderer<CrowEntity, LivingEntityRenderState> {
-    private static final RenderPipeline BUBBLE_PIPELINE = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation(CrowBuddy.id("pipeline/payment_bubble"))
-            .withColorTargetState(ColorTargetState.DEFAULT)
-            .withDepthStencilState(DepthStencilState.DEFAULT)
-            .withCull(false)
-            .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR)
-            .withPrimitiveTopology(PrimitiveTopology.TRIANGLE_FAN)
-            .build());
-    private static final RenderType BUBBLE_RENDER_TYPE = RenderType.create(
-        "crowbuddy_payment_bubble",
-        RenderSetup.builder(BUBBLE_PIPELINE).createRenderSetup());
+    private static final RenderType BUBBLE_RENDER_TYPE = RenderTypes.debugTriangleFan();
     // The payment prompt is a readability UI element. Keep both layers opaque
     // so clouds and other bright translucent world geometry cannot tint it.
     private static final int BUBBLE_BORDER_COLOR = 0xFF160024;
@@ -60,8 +41,11 @@ public class CrowRenderer extends GeoEntityRenderer<CrowEntity, LivingEntityRend
     public void extractRenderState(CrowEntity crow, LivingEntityRenderState renderState,
                                    float partialTick) {
         super.extractRenderState(crow, renderState, partialTick);
-        if (!crow.getCarriedItem().isEmpty()
-                || crow.getSatiation() < CrowBehaviorPolicy.MIN_SCAVENGE_SATIATION) {
+        boolean playerNearby = crow.level().getNearestPlayer(
+            crow, CrowBehaviorPolicy.PAYMENT_PROMPT_RANGE) != null;
+        if (CrowBehaviorPolicy.shouldShowPaymentPrompt(
+                crow.isTame(), playerNearby, !crow.getCarriedItem().isEmpty(),
+                crow.getSatiation())) {
             ((GeoRenderState) renderState).addGeckolibData(
                 SEED_PROMPT,
                 RenderUtil.createRenderStateForItem(
