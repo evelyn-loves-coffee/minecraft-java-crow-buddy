@@ -2,42 +2,48 @@
 
 ## 1. Crow Spawning
 
-- Fabric `BiomeModifications` added crows to overworld creature spawns.
-- Spawn weight was set to 2 with groups of two to four crows.
-- Crow nests were excluded from chunk generation.
+- Fabric `BiomeModifications` adds crows to overworld creature spawns in all non-ocean, non-river biomes.
+- Spawn weight is 1 with groups of one to two crows.
+- Crow nests are excluded from chunk generation.
 
 ## 2. Breeding Nest Construction
 
-- Vanilla breeding selected one parent to enter `inMatingState`; the other received its breeding cooldown but did not build.
-- `CrowNestBuildGoal` searched exposed canopy positions in expanding rings up to 16 blocks from the parent.
-- A site was accepted only when its support belonged to `#minecraft:leaves`, the block above was air, the sky was visible, and the position was inside the world border.
-- Search complexity was bounded to 1,089 heightmap columns, or `O(r²)` at radius 16. Invalidated targets were rechecked every 100 ticks for up to 1,200 ticks.
-- The parent walked or flew to the site, revalidated it, placed the internal-only nest block, and started incubation.
-- No player-obtainable nest item was registered.
+- Vanilla breeding selects one parent to enter `inMatingState`; the other receives its breeding cooldown but does not build.
+- `CrowNestBuildGoal` searches exposed canopy positions in expanding rings up to 48 blocks from the parent.
+- A site is accepted only when its support belongs to `#minecraft:leaves`, the block above is air, the sky is visible, and the position is inside the world border.
+- Search complexity is bounded to 10,125 heightmap columns, or `O(r²)` at radius 48. Invalidated targets are rechecked every 100 ticks for up to 1,200 ticks.
+- The parent walks or flies to the site via `CrowNavigator`, revalidates it, places the internal-only nest block, and starts incubation.
+- No player-obtainable nest item is registered.
 
 ## 3. Lifecycle
 
-1. `IDLE` served as the safe unloaded and default state.
-2. `EGGS` incubated for 12,000 ticks.
-3. `HATCHING` lasted for 100 ticks.
-4. Hatch completion spawned exactly one baby and removed the nest without a drop.
+1. `IDLE` serves as the safe unloaded and default state.
+2. `EGGS` incubates for 12,000 ticks (10 minutes).
+3. `HATCHING` lasts for 100 ticks (5 seconds).
+4. Hatch completion spawns exactly one baby crow and removes the nest without a drop.
 
-Legacy saved post-hatch stages were designed to be removed on their next server tick without spawning another baby. Removal or decay of the supporting leaves also removed the nest.
+Legacy saved post-hatch stages (3 and 4) are removed on their next server tick without spawning another baby. Removal or decay of the supporting leaves also removes the nest.
+
+Lifecycle transitions trigger sound events:
+- `CROW_EGG_LAY`: plays when incubation starts (IDLE → EGGS)
+- `CROW_HATCH`: plays when incubation enters hatching (EGGS → HATCHING), with happy villager particles
+- `CROW_FLEDGLING`: plays when baby spawns and nest is removed (HATCHING complete), with crit particles
 
 ## 4. Trampling
 
-- The block received a shallow collision shape that matched its model.
-- Non-careful walking received a 1-in-100 break chance, while landing received a 1-in-3 chance.
-- Players and living mobs could trample nests; crows and sneaking entities could not.
-- Mob trampling respected `mobGriefing`, while player trampling did not.
+- The block uses a shallow collision shape (box 1-15 x 0-5 x 1-15) that matches its model.
+- Non-careful walking (`stepOn`) has a 1-in-100 break chance; landing (`fallOn`) has a 1-in-3 chance.
+- Players and living mobs can trample nests; crows and sneaking (carefully stepping) entities cannot.
+- Mob trampling respects `mobGriefing`; player trampling does not.
+- Trampling plays `minecraft:turtle_egg_break` sound and logs the event at debug level.
 
 ## 5. PAWS Verification
 
 | Pillar | Phase 4 rule |
 |---|---|
-| Performance | Canopy discovery used a bounded `O(r²)` heightmap search and retried no more frequently than every 100 ticks. |
-| Auditability | Nest construction, timeout, and trampling paths emitted debug logs, while lifecycle stages persisted explicit IDs and timers. |
-| Workability | Placement was revalidated on arrival, hatch spawning retried after failure, and legacy post-hatch stages were removed without duplicate babies. |
-| Scalability | `#minecraft:leaves` enabled data-driven foliage compatibility, and nest placement remained isolated in one AI goal. |
+| Performance | Canopy discovery uses a bounded `O(r²)` heightmap search (max 10,125 columns at radius 48) and retries no more frequently than every 100 ticks. |
+| Auditability | Nest construction, timeout, and trampling paths emit debug logs; lifecycle stages persist explicit IDs and timers. |
+| Workability | Placement is revalidated on arrival, hatch spawning retries after failure, and legacy post-hatch stages are removed without duplicate babies. |
+| Scalability | `#minecraft:leaves` enables data-driven foliage compatibility; nest placement is isolated in one AI goal. |
 
-Verification covered lifecycle edge cases, trample eligibility, leaf-support behavior, natural crow spawning, and the absence of nest world generation.
+Verification covers lifecycle edge cases, trample eligibility, leaf-support behavior, natural crow spawning, and the absence of nest world generation.
