@@ -114,6 +114,12 @@ public final class CrowBehaviorPolicy {
         return tame && !baby && age == 0 && !alreadyInLove && buildSiteAvailable;
     }
 
+    /** Only a tamed adult in the breeding flow may construct or remain assigned to a nest. */
+    public static boolean canBuildNest(boolean tame, boolean baby, boolean mating,
+                                       boolean sitting) {
+        return tame && !baby && mating && !sitting;
+    }
+
     public static boolean canTrampleNest(boolean steppingCarefully, boolean livingEntity,
                                          boolean crow, boolean player, boolean mobGriefing) {
         return !steppingCarefully && livingEntity && !crow && (player || mobGriefing);
