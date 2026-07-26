@@ -8,17 +8,17 @@
 
 ## 2. Sound Mapping
 
-| Sound | Trigger |
-|---|---|
-| `CROW_MATE` | Breeding completed |
-| `CROW_EGG_LAY` | A parent constructed and started a nest |
-| `CROW_HATCH` | Incubation entered hatching |
-| `CROW_FLEDGLING` | A baby spawned and the nest disappeared |
-| `CROW_GROW` | A baby aged into an adult |
-| `CROW_DISTRESS` | Swarm or distress behavior activated |
-| `CROW_BABY_FLIGHT` | The event was registered and retained for planned audio, but no gameplay trigger was enacted |
+| Sound | Trigger | Implementation |
+|---|---|---|
+| `CROW_MATE` | Breeding completed | `CrowEntity.breed()` |
+| `CROW_EGG_LAY` | A parent constructed and started a nest | `CrowNestBlockEntity.startIncubation()` |
+| `CROW_HATCH` | Incubation entered hatching (EGGS → HATCHING) | `CrowNestBlockEntity.advanceStage()` with happy villager particles |
+| `CROW_FLEDGLING` | A baby spawned and the nest disappeared | `CrowNestBlockEntity.advanceStage()` with crit particles |
+| `CROW_GROW` | A baby aged into an adult | `CrowEntity.ageUp()` |
+| `CROW_DISTRESS` | Swarm or distress behavior activated | `SwarmManager.onCrowDamaged()` and `SwarmDistressGoal` |
+| `CROW_BABY_FLIGHT` | Baby crow takes its first flight after growing | `CrowEntity.ageUp()` when baby transitions to adult |
 
-The checked-in `.ogg` files remained placeholders. Candidate source links were retained in `SOUNDS.md`.
+All seven sound events are registered in `ModSounds.java` and mapped in `assets/crowbuddy/sounds.json`. The checked-in `.ogg` files are placeholders; candidate source links are retained in `SOUNDS.md`. Sound triggers fire regardless of whether actual audio files are present.
 
 ## 3. Verification
 
@@ -37,239 +37,165 @@ The checked-in `.ogg` files remained placeholders. Candidate source links were r
 The phase required a clean build with deprecation linting and retained manual in-game checks for visual and audio behavior.
 
 ---
+---
 
-## 5. Navigation Refactor - LLD & Requirements
+## 5. Navigation Refactor - Implementation
 
 ### Objective
 Centralize goal and pathfinding systems in the crow-buddy Minecraft mod, then implement intelligent 3D flight pathfinding.
 
----
+### Status
+Completed. Verified against Minecraft 26.2 mappings. Build passes with 38 tests, zero failures.
 
-### Analysis Summary
+### Architecture
 
-#### Goals System (Current State)
-- 5 custom goals: ScavengeGoal, SwarmDistressGoal, CrowFlightGoal, HigherGroundStrollGoal, CrowNestBuildGoal
-- 8 vanilla goals registered on crow entity
-- Goals scattered across `goal/` and `entity/ai/goal/` directories
-- Goals define targets only; navigation code decides movement mode (hop vs flight) based on distance/elevation
+#### Core Principle
+Goals define intent (destination, entity, or condition). CrowNavigator owns all planning and steering. Goals never directly manipulate pathfinding or velocity.
 
-#### Pathfinding System (Current State)
-- Hybrid vanilla `PathNavigation` + duplicated custom PID flight steering in 3+ goals
-- No A* implementation; relies on vanilla ground pathfinding + custom flight steering
-- Navigation logic duplicated across multiple goals
+#### Component Overview
 
----
+| Component | Responsibility | File |
+|---|---|---|
+| TerrainSampler | Single-method interface for passability checks | entity/ai/navigation/TerrainSampler.java |
+| DefaultTerrainSampler | Conservative flight clearance: blocks solids, leaves, fluids, out-of-bounds | entity/ai/navigation/DefaultTerrainSampler.java |
+| FlightNavigator | Interface for pathfinding (implemented by AStarPathfinder) | entity/ai/navigation/FlightNavigator.java |
+| AStarPathfinder | Bounded 3D A* with terrain sampling and path smoothing | entity/ai/navigation/AStarPathfinder.java |
+| CrowNavigator | Central orchestrator: mode selection, path following, steering | entity/ai/navigation/CrowNavigator.java |
+| CrowPathCache | Per-entity TTL-based path cache (40 game ticks) | entity/ai/navigation/CrowPathCache.java |
+| MovementMode | Enum: HOP (vanilla navigation) vs FLY (custom steering) | entity/ai/navigation/MovementMode.java |
+| ScavengeRegistry | Atomic per-dimension item claims across crows | goal/ScavengeRegistry.java |
 
-### High-Level Design (HLD)
-
-#### Centralized Goals
-- Goals define targets only (position, entity, or condition)
-- Goals do NOT contain navigation logic
-- `CrowNavigator` decides movement mode based on distance/elevation thresholds
-
-#### Centralized Navigation
-- `CrowNavigator` orchestrates path planning and execution
-- `FlightNavigator` handles 3D A* pathfinding with terrain awareness
-- `TerrainSampler` abstracts block state queries for obstacle detection
-- Shared navigation infrastructure across all goals
-
-#### Intelligent 3D Pathfinding
-- A* operates in full 3D space
-- Grid resolution: 4 blocks (based on analysis)
-- Obstacles: solids + leaves + liquids all blocked for flight
-- Canopy awareness: detect and navigate around/over tree canopies
-- Path smoothing to preserve directional momentum
-
----
-
-### Low-Level Design (LLD)
-
-#### Core Interfaces
-
-##### TerrainSampler
+#### TerrainSampler Interface
 ```java
+@FunctionalInterface
 interface TerrainSampler {
-    boolean isPassable(World world, BlockPos pos);
-    boolean isSolid(BlockState state);
-    boolean isLiquid(BlockState state);
-    boolean isLeaf(BlockState state);
-    boolean isAir(BlockState state);
-    double getObstacleCost(BlockState state);
-    boolean isUnderCanopy(World world, BlockPos pos);
-    double getCanopyDensity(World world, BlockPos pos);
+    boolean isPassable(Level level, BlockPos pos);
 }
 ```
+Simplified from initial design to a single method. DefaultTerrainSampler rejects:
+- Positions outside world border, below minY, or at/above maxY
+- Blocks with fluid state
+- Blocks tagged #minecraft:leaves
+- Blocks with non-empty collision shape
 
-##### FlightNavigator
+#### FlightNavigator Interface
 ```java
 interface FlightNavigator {
-    List<Vec3d> findPath(World world, Vec3d start, Vec3d target);
-    boolean isPathValid(List<Vec3d> path, World world);
+    List<Vec3> findPath(Level level, Vec3 start, Vec3 target);
+    boolean isPathValid(Level level, List<Vec3> path);
     int getMaxSearchNodes();
 }
 ```
 
-##### CrowNavigator
-```java
-class CrowNavigator {
-    void setTarget(Vec3d target);
-    void setTarget(Entity target);
-    boolean hasPath();
-    boolean isFollowingPath();
-    boolean hasReachedTarget();
-    void tick(CrowEntity crow);
-    MovementMode getMovementMode();
-    void invalidatePath();
-}
-```
+#### AStarPathfinder Implementation
+- 4-block grid resolution (configurable constructor parameter)
+- 2,000 max search nodes (configurable, default 2000)
+- 26 three-dimensional neighbors per node
+- Block-by-block edge validation via segmentClear() along each coarse edge
+- Vertical cost multiplier: 1.5x (no canopy exit bonus in final implementation)
+- Path smoothing: line-of-sight shortcut removal after path reconstruction
+- Returns empty list if no path found; caller falls back to direct target
+- Start and goal passability checked before search begins
 
-#### Core Classes
+#### CrowNavigator Implementation
+- Entity-owned: instantiated in CrowEntity constructor with new AStarPathfinder(new DefaultTerrainSampler(), 4)
+- Movement mode decision via CrowBehaviorPolicy.shouldUseGroundHop():
+  - HOP if |verticalDifference| <= 0.5 and horizontalDistanceSq <= 9.0
+  - FLY otherwise
+- HOP mode: delegates to vanilla PathNavigation.moveTo()
+- FLY mode: stops vanilla navigation, requests flight path, applies custom PID-like steering
+- Dynamic entity targets refreshed when target moves >1 block
+- Path cache expires after 40 game ticks (tick-based, not wall-clock)
+- Replans after 20 ticks without measurable progress (stall detection)
+- Arrival: scales velocity to 35%, clears AIRBORNE, triggers land animation
+- Grounded low-velocity safety check in clear() repairs stale airborne state
 
-##### PathNode
-- Grid coordinates (x, y, z)
-- gCost, hCost, parent reference
-- Distance and heuristic calculations
+#### CrowPathCache Implementation
+- Per-entity (owned by CrowNavigator instance)
+- TTL: 40 game ticks using Level.getGameTime()
+- Cache hit: same target within 1 block and not expired
+- Stores immutable copy of path via List.copyOf()
 
-##### AStarPathfinder
-- 4-block grid resolution
-- 2000 max nodes for search
-- Vertical penalty: 1.5x cost
-- Canopy exit bonus: -2.0 cost
-- Path smoothing (collinear point removal)
-
-##### CrowPathCache
-- TTL-based path caching (configurable)
-- Detection if crow hasn't progressed toward target
-- Automatic path invalidation on world changes
-
-##### ScavengeRegistry
-- Shared registry for validating scavenged items across crows
-- Thread-safe operations
+#### ScavengeRegistry Implementation
+- Static ConcurrentHashMap<ResourceKey<Level>, ScavengeRegistry> for per-dimension instances
+- Internal ConcurrentHashMap<Integer, Integer> maps item entity ID to crow entity ID
+- claim(itemId, crowId): atomic via putIfAbsent; returns true if this crow owns or newly claims
+- releaseAll(crowId): removes all claims by a specific crow
+- isClaimedByOther(itemId, crowId): checks if another crow owns this item
+- Cleanup on dimension unload via ServerLevelEvents.UNLOAD in CrowBuddy.onInitialize()
 
 #### Movement Mode Decision Logic
-```
-if (horizontalDistance < 8 && verticalDistance < 3) {
-    return MovementMode.HOP;
-} else {
-    return MovementMode.FLY;
-}
+```java
+// CrowBehaviorPolicy.shouldUseGroundHop()
+return Math.abs(verticalDifference) <= 0.5 && horizontalDistanceSq <= 9.0;
 ```
 
 #### Path Following
-- Crow follows cached waypoint list
-- Re-invoke pathfinding only if stuck (no progress for N ticks)
-- Paths preserve directional momentum (no jerky reversals)
+- Crow follows cached waypoint list with momentum blending
+- Steering: desired velocity scaled by speed (0.30 adult, 0.20 baby), blended with current movement at 72%/28%
+- Re-invoke pathfinding only if stuck (20 ticks without progress) or cache expired
+- Paths preserve directional momentum via smoothing and blending
 
----
+### Runtime Flow
 
-### Assumptions & Questions (Answered)
+1. A goal selects a destination and calls CrowNavigator.navigateTo(destination, speed).
+2. CrowNavigator applies hop thresholds or requests a cached/new 3D flight path.
+3. AStarPathfinder samples every coarse-grid edge through TerrainSampler; solids, leaves, fluids, world-border positions, and height violations are rejected.
+4. CrowNavigator.tick() follows smoothed waypoints with momentum blending and triggers bounded replanning on target movement, TTL expiry on next request, or stall.
+5. Goal stop, sitting, landing, attack range, and entity removal clear navigation ownership.
 
-| # | Assumption/Question | Answer |
-|---|---------------------|--------|
-| 1 | Goals define targets only; navigation code decides movement mode | CONFIRMED |
-| 2 | Crows never walk/slide on ground; short distances use hops, everything else uses flight | CONFIRMED |
-| 3 | `isInMatingState` means "assigned to build nest after breeding" (not "seeking partner") | CONFIRMED - used by CrowNestBuildGoal |
-| 4 | CrowNavigator builds waypoint list; crow follows cached path; re-invoke only if stuck | CONFIRMED |
-| 5 | Paths must preserve directional momentum (no jerky reversals) | CONFIRMED |
-| 6 | A* must operate in full 3D (e.g., crow under tree canopy reaching target above) | CONFIRMED |
-| 7 | Grid resolution TBD after analysis | DECIDED: 4 blocks (optimal balance of detail vs performance) |
-| 8 | Solids + leaves + liquids are all blocked for flight | CONFIRMED |
-| 9 | Shared ScavengeRegistry for validating scavenged items across crows | CONFIRMED |
-| 10 | TTL cache for paths with detection if crow hasn't progressed toward target | CONFIRMED |
-| 11 | Race conditions in SwarmManager needs code-based guard | CONFIRMED - atomic operations or locks |
-| 12 | Test strategy: mocks for pure logic + headless Minecraft test framework | CONFIRMED |
+### Refactored Goals
 
----
+All 5 custom goals refactored to use CrowNavigator:
+- ScavengeGoal: selects target item via ScavengeRegistry, delegates movement to CrowNavigator
+- CrowFlightGoal: requests flight destination, CrowNavigator handles pathfinding
+- SwarmDistressGoal: targets distressed crow or attacker via CrowNavigator
+- HigherGroundStrollGoal: selects elevated position, CrowNavigator navigates
+- CrowNestBuildGoal: acquires MOVE control only after valid nest position found; uses CrowNavigator for travel
 
-### Tree Pathfinding Analysis Results
+Goals retain lifecycle-only takeoff/landing velocity changes but no longer implement travel steering or issue path-navigation requests.
 
-#### Grid Resolution Analysis
-| Scenario | 2b Grid | 4b Grid | 6b Grid | 8b Grid |
-|----------|---------|---------|---------|---------|
-| Short (20h x 5v) | 300 nodes | 50 nodes | 16 nodes | 9 nodes |
-| Medium (40h x 15v) | 3200 nodes | 400 nodes | 147 nodes | 50 nodes |
-| Long (80h x 25v) | 20800 nodes | 2800 nodes | 980 nodes | 400 nodes |
-| Under-tree (10h x 10v) | 125 nodes | 27 nodes | 8 nodes | 8 nodes |
+### PAWS Fixes Applied
 
-#### Key Findings
-- Max climb angle needed: ~45-60 degrees for tight escapes
-- Optimal grid resolution: 4-6 blocks (4b chosen for under-tree detail)
-- Path phases: EXIT, CLIMB, CRUISE, OVER, DESCEND
-- All scenarios workable with 3D A* at 4b resolution
+#### P1 Performance
+1. CrowPathCache TTL: game-tick-based (getGameTime()) instead of System.currentTimeMillis() to avoid desync
+2. CrowPathCache dimension tracking: static Map with remove(Level) for dimension unload cleanup
 
----
+#### P2 Auditability
+1. AStarPathfinder cost tuning: vertical penalty (1.5x) applied to move cost calculation
+2. AStarPathfinder smoothing: line-of-sight shortcut removal after reconstruction
+3. AStarPathfinder passability: start/goal passability checks using terrainSampler.isPassable()
 
-### Implementation Order
+#### P3 Workability
+1. CrowNestBuildGoal: acquires MOVE control only after valid nest position (prevents stationary timeout)
+2. Food temptation: selects nearest tempting player, delegates movement to CrowNavigator
+3. Flight arrival: clears AIRBORNE/no-gravity, triggers landing; grounded safety check in clear()
+4. CrowEntity onRemove(RemovalReason): calls navigator.clear(this) on entity removal
 
-1. Create navigation directory structure
-2. Implement TerrainSampler interface and DefaultTerrainSampler
-3. Implement PathNode and AStarPathfinder
-4. Implement FlightNavigator
-5. Implement CrowNavigator (central orchestrator)
-6. Implement CrowPathCache with TTL
-7. Implement ScavengeRegistry
-8. Refactor existing goals to use CrowNavigator
-9. Add race condition guard to SwarmManager
-10. Add tests
-
----
+### MC 26.2 API Adaptations
+- ResourceKey<Level> used directly as map key in ScavengeRegistry
+- Entity removal via onRemove(RemovalReason) override in CrowEntity
+- CrowPathCache uses Level.getGameTime() for tick-based TTL
 
 ### Relevant Files
 
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/goal/`: Current custom goals
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/entity/ai/goal/CrowNestBuildGoal.java`: Nest building goal (stays in ai/goal)
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/entity/CrowEntity.java`: Entity class; holds goal registration, state, navigation field
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/entity/CrowBehaviorPolicy.java`: Shared thresholds/policy logic
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/swarm/SwarmManager.java`: Swarm coordination; needs race condition guard
-- `/home/evelyn/Apps/crow-buddy/src/main/java/com/crowbuddy/entity/ai/navigation/`: Target directory for new navigation system
+- src/main/java/com/crowbuddy/entity/ai/navigation/: Navigation system (7 files)
+- src/main/java/com/crowbuddy/goal/ScavengeRegistry.java: Shared scavenge claims
+- src/main/java/com/crowbuddy/goal/: Refactored custom goals
+- src/main/java/com/crowbuddy/entity/ai/goal/CrowNestBuildGoal.java: Nest building goal (uses CrowNavigator)
+- src/main/java/com/crowbuddy/entity/CrowEntity.java: Entity class; owns CrowNavigator instance
+- src/main/java/com/crowbuddy/entity/CrowBehaviorPolicy.java: Movement mode thresholds and behavior policies
 
----
+### Remaining Empirical Verification
 
-### Implementation Notes & PAWS Fixes
+Automated tests cover direct-path selection, vertical obstacle routing, planner configuration validation, atomic scavenge claims, and behavior policies/state machines.
 
-#### Completed Implementation
-- Implemented on 2026-07-23 and verified against Minecraft 26.2 mappings: `TerrainSampler`, bounded `AStarPathfinder`, `FlightNavigator`, entity-owned `CrowNavigator`, tick-based `CrowPathCache`, and `ScavengeRegistry`.
-- All 5 custom goals refactored to use CrowNavigator (ScavengeGoal, CrowFlightGoal, SwarmDistressGoal, HigherGroundStrollGoal, CrowNestBuildGoal)
-- Goals retain lifecycle-only takeoff/landing velocity changes, but no longer implement travel steering or issue path-navigation requests.
-- `CrowEntity` owns `CrowNavigator(new AStarPathfinder(new DefaultTerrainSampler(), 4))`, ticks it server-side, and clears it on removal.
-- Dynamic entity targets are refreshed after moving more than one block; paths expire after 40 game ticks and replan after 20 ticks without measurable progress.
-- A* uses 26 three-dimensional neighbors, block-by-block edge validation, a 1.5x vertical cost multiplier, line-of-sight smoothing, and a hard 2,000-node expansion limit.
-- `ScavengeRegistry` uses atomic per-dimension claims and unload cleanup. `SwarmManager` serializes compound escalation-history mutations.
-- `./gradlew clean build --warning-mode all` passed with 38 tests, zero failures, and zero errors.
+In-game GameTests still needed for:
+- Entity-sized clearance in tight spaces
+- Moving-target combat pursuit
+- Dense-canopy escape routing
+- Goal preemption and CrowNavigator handoff
+- Chunk-edge pathfinding behavior
+- Visible hop/flight mode transitions
 
-#### Runtime Flow (HLD to LLD Trace)
-
-1. A goal selects a destination and calls `CrowNavigator.navigateTo`.
-2. `CrowNavigator` applies the confirmed hop thresholds or requests a cached/new 3D flight path.
-3. `AStarPathfinder` samples every coarse-grid edge through `TerrainSampler`; solids, leaves, fluids, world-border positions, and build-height violations are rejected.
-4. `CrowNavigator.tick` follows smoothed waypoints with momentum blending and triggers bounded replanning on target movement, TTL expiry on the next request, or a stall.
-5. Goal stop, sitting, landing, attack range, and entity removal clear navigation ownership.
-
-#### Remaining Empirical Verification
-
-- The automated suite proves direct-path selection, vertical obstacle routing, planner configuration validation, atomic scavenge claims, and existing behavior policies/state machines.
-- In-game GameTests are still needed for entity-sized clearance, moving-target combat, dense-canopy escape, goal preemption, chunk-edge behavior, and visible hop/flight transitions. The planner deliberately falls back to the exact target when its bounded search finds no path; this preserves behavior liveness but must be observed in adversarial terrain.
-
-#### Post-Integration Targeting Corrections
-
-- `CrowNestBuildGoal` now acquires the `MOVE` control only after it has a valid nest position. Previously, a mating crow with no selected site could reserve movement for the full timeout while remaining stationary.
-- Food temptation now selects the nearest actually-tempting player and delegates movement to `CrowNavigator`, rather than mixing vanilla ground navigation with shared flight state.
-- Flight arrival clears `AIRBORNE`/no-gravity and triggers landing. A grounded low-velocity safety check repairs stale airborne state from interrupted goals.
-
-#### PAWS P1 Fixes Applied
-1. **CrowPathCache TTL**: Converted from System.currentTimeMillis() to game-tick-based (getGameTime()) to avoid desync across server restarts
-2. **CrowPathCache dimension tracking**: Added static Map<ResourceKey<Level>, CrowPathCache> with remove(Level) for dimension unload cleanup
-3. **CrowNavigator.executeMovement()**: Removed no-op method; navigateTo() now returns true after caching path
-4. **CrowEntity cleanup**: Added onRemove(RemovalReason) override to call navigator.clear(this) on entity removal
-
-#### PAWS P2 Fixes Applied
-1. **AStarPathfinder cost tuning**: Added vertical penalty (1.5x) and canopy exit bonus (-2.0) to move cost calculation
-2. **AStarPathfinder smoothing**: Added smoothPath() with collinear point removal (cross product < 0.01 threshold)
-3. **DefaultFlightNavigator.getProgress()**: Fixed to track waypoint index and compute progress along actual path length
-4. **ScavengeGoal**: Removed unused MovementMode import
-5. **AStarPathfinder passability**: Added start/goal passability checks using terrainSampler.isPassable()
-
-#### MC 26.2 API Adaptations
-- ResourceKey<Level> used directly as map key (no location()/getKey() method available)
-- Entity.remove(RemovalReason) used for cleanup hook (not onRemove/onEntityRemoved)
-- CrowPathCache requires Level parameter in constructor (no no-arg constructor)
+The planner deliberately falls back to the exact target when its bounded search finds no path, preserving behavior liveness. This fallback should be observed in adversarial terrain.

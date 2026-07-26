@@ -567,6 +567,7 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         super.ageBoundaryReached();
         if (!this.level().isClientSide()) {
             this.playSound(com.crowbuddy.sound.ModSounds.CROW_GROW, 1.0f, 1.0f);
+            this.playSound(com.crowbuddy.sound.ModSounds.CROW_BABY_FLIGHT, 1.0f, 1.0f);
         }
     }
 
