@@ -27,7 +27,6 @@ logs/
 /run/
 
 # Machine-local deployment helpers and staged mods
-/build-and-deploy.sh
 /mods/
 
 # Keep track of when git fetch was last run
