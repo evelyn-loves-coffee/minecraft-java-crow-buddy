@@ -234,6 +234,10 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             return true;
         }
         net.minecraft.core.BlockPos pos = this.blockPosition();
+        if (!level.getFluidState(pos).isEmpty()
+                || !level.getFluidState(pos.below()).isEmpty()) {
+            return false;
+        }
         int surfaceY = level.getHeight(
             net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ());
         return pos.getY() >= surfaceY - 1 && level.canSeeSky(pos);
