@@ -13,13 +13,14 @@ public class CrowSpawning {
     public static void initialize() {
         var landBiomes = BiomeSelectors.foundInOverworld()
                 .and(Predicate.not(BiomeSelectors.tag(BiomeTags.IS_OCEAN)))
-                .and(Predicate.not(BiomeSelectors.tag(BiomeTags.IS_RIVER)));
+                .and(Predicate.not(BiomeSelectors.tag(BiomeTags.IS_RIVER)))
+                .and(Predicate.not(BiomeSelectors.tag(BiomeTags.IS_BADLANDS)));
 
         BiomeModifications.addSpawn(
                 landBiomes,
                 MobCategory.CREATURE,
                 ModEntities.CROW,
-                1,
+                5,
                 1,
                 2
         );

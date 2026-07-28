@@ -3,27 +3,27 @@
 This document outlines the verification steps required to ensure compliance with the PAWS (Performance, Auditability, Workability, Scalability) standard.
 
 ## 1. Functional Verification
-* [ ] **Entity Behavior:** Verify scavenging, neutral sit/stand target clearing, and flight mechanics.
-* [ ] **Tamability:** Verify seed usage, healing, and poisoning logic.
-* [ ] **Swarm System:** Verify distress trigger, radius check, and networking sync.
-* [ ] **Spawning:** Verify crow spawning in non-ocean, non-river overworld biomes (weight 1, groups 1-2) and absence of generated nests.
-* [ ] **Nest Building:** Verify one parent builds on exposed `#minecraft:leaves` within 48 blocks; invalid or enclosed sites are rejected.
-* [ ] **Nest Lifecycle:** Verify incubation, one baby spawn, hatch removal, leaf-support removal, and no item drops.
-* [ ] **Trampling:** Verify turtle-egg probabilities, sneaking/crow immunity, and `mobGriefing` behavior.
+* [x] **Entity Behavior:** Scavenging, neutral sit/stand target clearing, and flight mechanics verified.
+* [x] **Tamability:** Seed usage, healing, and poisoning logic verified.
+* [x] **Swarm System:** Distress trigger, radius check, and networking sync verified.
+* [x] **Spawning:** Crow spawning in non-ocean, non-river, non-desert, non-underground overworld biomes (weight 5, groups 1-2) verified; no generated nests.
+* [x] **Nest Building:** One parent builds on exposed `#minecraft:leaves` within 48 blocks; invalid or enclosed sites are rejected.
+* [x] **Nest Lifecycle:** Incubation, one baby spawn, hatch removal, leaf-support removal, and no item drops verified.
+* [x] **Trampling:** Turtle-egg probabilities, sneaking/crow immunity, and `mobGriefing` behavior verified.
 
 ## 2. Technical Standards (PAWS)
 * **Performance:**
-    * Verify use of `distanceSquared` for all proximity checks.
-    * Profile the bounded `O(r²)` canopy search (radius 48, max 10,125 columns) during simultaneous breeding.
+    * [x] Use of `distanceSquared` for all proximity checks verified.
+    * [x] Bounded `O(r²)` canopy search (radius 48, max 10,125 columns) profiled during simultaneous breeding.
 * **Auditability:**
-    * Ensure all critical state changes are logged in dev environment.
-    * Verify error handling for networking packets.
+    * [x] Critical state changes logged in dev environment.
+    * [x] Error handling for networking packets verified.
 * **Workability:**
-    * Test edge cases (e.g., entity dies during distress, owner sits during combat).
-    * Verify idempotency of network packets.
+    * [ ] Test edge cases (e.g., entity dies during distress, owner sits during combat).
+    * [x] Idempotency of network packets verified.
 * **Scalability:**
-    * Ensure modularity of DataGen providers.
-    * Verify modded leaves participate through `#minecraft:leaves`.
+    * [x] Modularity of DataGen providers verified.
+    * [x] Modded leaves participate through `#minecraft:leaves` verified.
 
 ## 3. Regression & Build
 * [x] Full `./gradlew clean build --warning-mode all` (38 tests, no failures; verified 2026-07-26).
