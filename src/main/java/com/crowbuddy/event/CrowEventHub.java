@@ -36,36 +36,20 @@ public class CrowEventHub {
     }
 
     static void onEntityDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source, float amount, float knockback, boolean isDirect) {
-        if (!entity.level().isClientSide()) {
-            if (entity instanceof CrowEntity crow) {
-                handleCrowDamaged(crow, source, amount);
-            } else {
-                handleNonCrowDamaged(entity, source);
-            }
+        if (!entity.level().isClientSide() && entity instanceof CrowEntity crow) {
+            handleCrowDamaged(crow, source, amount);
         }
     }
 
     static InteractionResult onPlayerAttackEntity(Player player, Level level, net.minecraft.world.InteractionHand hand, Entity target, EntityHitResult hitResult) {
-        if (!level.isClientSide()) {
-            if (target instanceof CrowEntity crow) {
-                handlePlayerAttackCrow(player, crow);
-            } else {
-                handlePlayerAttackTarget(player, target);
-            }
+        if (!level.isClientSide() && !(target instanceof CrowEntity)) {
+            handlePlayerAttackTarget(player, target);
         }
         return InteractionResult.PASS;
     }
 
     static void handleCrowDamaged(CrowEntity crow, net.minecraft.world.damagesource.DamageSource source, float amount) {
         SwarmManager.get(crow.level()).onCrowDamaged(crow, source, amount);
-    }
-
-    static void handleNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
-        SwarmManager.get(entity.level()).onNonCrowDamaged(entity, source);
-    }
-
-    static void handlePlayerAttackCrow(Player player, CrowEntity crow) {
-        SwarmManager.get(crow.level()).onPlayerAttackCrow(player, crow);
     }
 
     static void handlePlayerAttackTarget(Player player, Entity target) {

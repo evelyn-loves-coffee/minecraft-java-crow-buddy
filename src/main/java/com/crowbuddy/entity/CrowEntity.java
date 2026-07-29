@@ -347,79 +347,120 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
+
         if (isPoisonousFood(itemStack)) {
-            if (this.level().isClientSide()) return InteractionResult.SUCCESS;
-            this.usePlayerItem(player, hand, itemStack);
-            this.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                net.minecraft.world.effect.MobEffects.POISON, 200));
-            return InteractionResult.SUCCESS;
+            return this.handlePoisonousFood(player, hand, itemStack);
         }
+
         if (this.isConsumableCrowFood(itemStack)) {
-            // A carrying crow accepts payment before breeding-cooldown handling.
-            // Otherwise the vanilla positive-age cooldown makes delivery impossible.
-            if (CrowBehaviorPolicy.shouldAcceptDeliveryPayment(
-                    !this.getCarriedItem().isEmpty(), this.isTame(), this.isOwnedBy(player), true)) {
-                if (this.level().isClientSide()) return InteractionResult.SUCCESS;
-                this.usePlayerItem(player, hand, itemStack);
-                this.finishFeeding(player);
-                return InteractionResult.SUCCESS;
-            }
-            // Black oil seeds remain usable for taming/breeding regardless of
-            // satiation; the fullness guard applies to ordinary food only.
-            if (!this.isFood(itemStack) && !CrowBehaviorPolicy.shouldConsumeFood(
-                    this.getSatiation(), !this.getCarriedItem().isEmpty())) {
-                return InteractionResult.PASS;
-            }
-            if (this.isFood(itemStack) && CrowBehaviorPolicy.isBreedingCooldown(this.getAge())) {
-                return InteractionResult.PASS;
-            }
-            boolean isTamingFood = itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
-            if (this.level().isClientSide()) {
-                return InteractionResult.SUCCESS;
-            }
-
-            if (CrowBehaviorPolicy.shouldSpeedUpGrowth(this.isBaby(), true) && this.isFood(itemStack)) {
-                InteractionResult growthResult = super.mobInteract(player, hand);
-                boolean consumedFood = growthResult.consumesAction();
-                if (consumedFood) {
-                    this.finishFeeding(player);
-                }
-                if (CrowBehaviorPolicy.shouldEmitGrowthParticles(true, consumedFood)) {
-                    this.broadcastGrowthParticles();
-                }
-                return growthResult;
-            }
-
-            if (this.isTame() && this.isFood(itemStack)) {
-                InteractionResult breedingResult = super.mobInteract(player, hand);
-                if (breedingResult.consumesAction()) {
-                    this.finishFeeding(player);
-                    return breedingResult;
-                }
-            }
-
-            this.feed(player, hand, itemStack, 2.0f, 2.0f);
-            this.finishFeeding(player);
-            if (CrowBehaviorPolicy.canAttemptTaming(this.isBaby(), this.isTame(), isTamingFood)) {
-                boolean tamed = this.getRandom().nextInt(
-                    CrowBehaviorPolicy.TAMING_CHANCE_DENOMINATOR) == 0;
-                if (tamed) {
-                    this.tame(player);
-                }
-                this.level().broadcastEntityEvent(this, tamed ? (byte) 7 : (byte) 6);
-            }
-            return InteractionResult.SUCCESS;
+            return this.handleConsumableFood(player, hand, itemStack);
         }
 
         if (this.isTame() && this.isOwnedBy(player)) {
-            if (this.level().isClientSide()) {
-                return InteractionResult.SUCCESS;
-            }
-            this.setNeutralSittingState(!this.isOrderedToSit());
-            return InteractionResult.CONSUME;
+            return this.handleOwnedCrowInteraction(player);
         }
 
         return super.mobInteract(player, hand);
+    }
+
+    private InteractionResult handlePoisonousFood(Player player, InteractionHand hand, ItemStack itemStack) {
+        if (this.level().isClientSide()) return InteractionResult.SUCCESS;
+        this.usePlayerItem(player, hand, itemStack);
+        this.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+            net.minecraft.world.effect.MobEffects.POISON, 200));
+        return InteractionResult.SUCCESS;
+    }
+
+    private InteractionResult handleConsumableFood(Player player, InteractionHand hand, ItemStack itemStack) {
+        if (this.handleDeliveryPayment(player, hand, itemStack)) {
+            return InteractionResult.SUCCESS;
+        }
+
+        if (!this.isFood(itemStack) && !CrowBehaviorPolicy.shouldConsumeFood(
+                this.getSatiation(), !this.getCarriedItem().isEmpty())) {
+            return InteractionResult.PASS;
+        }
+
+        if (this.isFood(itemStack) && CrowBehaviorPolicy.isBreedingCooldown(this.getAge())) {
+            return InteractionResult.PASS;
+        }
+
+        if (this.level().isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+
+        InteractionResult growthResult = this.handleBabyGrowth(player, hand, itemStack);
+        if (growthResult != null) {
+            return growthResult;
+        }
+
+        InteractionResult breedingResult = this.handleTameBreeding(player, hand, itemStack);
+        if (breedingResult != null) {
+            return breedingResult;
+        }
+
+        return this.handleRegularFeedingAndTaming(player, hand, itemStack);
+    }
+
+    private boolean handleDeliveryPayment(Player player, InteractionHand hand, ItemStack itemStack) {
+        if (!CrowBehaviorPolicy.shouldAcceptDeliveryPayment(
+                !this.getCarriedItem().isEmpty(), this.isTame(), this.isOwnedBy(player), true)) {
+            return false;
+        }
+        if (this.level().isClientSide()) return true;
+        this.usePlayerItem(player, hand, itemStack);
+        this.finishFeeding(player);
+        return true;
+    }
+
+    private InteractionResult handleBabyGrowth(Player player, InteractionHand hand, ItemStack itemStack) {
+        if (!CrowBehaviorPolicy.shouldSpeedUpGrowth(this.isBaby(), true) || !this.isFood(itemStack)) {
+            return null;
+        }
+        InteractionResult growthResult = super.mobInteract(player, hand);
+        boolean consumedFood = growthResult.consumesAction();
+        if (consumedFood) {
+            this.finishFeeding(player);
+        }
+        if (CrowBehaviorPolicy.shouldEmitGrowthParticles(true, consumedFood)) {
+            this.broadcastGrowthParticles();
+        }
+        return growthResult;
+    }
+
+    private InteractionResult handleTameBreeding(Player player, InteractionHand hand, ItemStack itemStack) {
+        if (!this.isTame() || !this.isFood(itemStack)) {
+            return null;
+        }
+        InteractionResult breedingResult = super.mobInteract(player, hand);
+        if (breedingResult.consumesAction()) {
+            this.finishFeeding(player);
+            return breedingResult;
+        }
+        return null;
+    }
+
+    private InteractionResult handleRegularFeedingAndTaming(Player player, InteractionHand hand, ItemStack itemStack) {
+        boolean isTamingFood = itemStack.is(ModItems.BLACK_OIL_SUNFLOWER_SEEDS);
+        this.feed(player, hand, itemStack, 2.0f, 2.0f);
+        this.finishFeeding(player);
+        if (CrowBehaviorPolicy.canAttemptTaming(this.isBaby(), this.isTame(), isTamingFood)) {
+            boolean tamed = this.getRandom().nextInt(
+                CrowBehaviorPolicy.TAMING_CHANCE_DENOMINATOR) == 0;
+            if (tamed) {
+                this.tame(player);
+            }
+            this.level().broadcastEntityEvent(this, tamed ? (byte) 7 : (byte) 6);
+        }
+        return InteractionResult.SUCCESS;
+    }
+
+    private InteractionResult handleOwnedCrowInteraction(Player player) {
+        if (this.level().isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        this.setNeutralSittingState(!this.isOrderedToSit());
+        return InteractionResult.CONSUME;
     }
 
     private void setNeutralSittingState(boolean sitting) {
@@ -431,13 +472,20 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
 
         this.setTarget(null);
         this.setState(CrowState.IDLE);
-        this.getNavigation().stop();
-        this.setAirborne(false);
-        this.setDeltaMovement(Vec3.ZERO);
+        this.crowNavigator.clear(this);
         if (this.swarmGoal != null) {
             this.swarmGoal.clearTarget();
         }
         SwarmManager.get(this.level()).clearCrowState(this.getId());
+
+        if (this.isAirborne()) {
+            this.setNoGravity(false);
+            this.setDeltaMovement(
+                this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
+        } else {
+            this.setAirborne(false);
+            this.setDeltaMovement(Vec3.ZERO);
+        }
     }
 
     private void finishFeeding(Player player) {
@@ -463,14 +511,19 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
             this.crowNavigator.tick(this);
         }
         if (this.isAirborne()) {
-            if (!this.level().isClientSide() && !this.directedFlight) {
-                this.maintainForwardFlightMomentum();
+            if (!this.isOrderedToSit()) {
+                if (!this.level().isClientSide() && !this.directedFlight) {
+                    this.maintainForwardFlightMomentum();
+                }
+                this.alignBodyWithFlight();
             }
-            this.alignBodyWithFlight();
             if (!this.level().isClientSide() && this.onGround()
                     && this.getDeltaMovement().lengthSqr() < 0.0025) {
                 this.setAirborne(false);
                 this.triggerLandAnimation();
+                if (this.isOrderedToSit()) {
+                    this.setInSittingPose(true);
+                }
             }
         }
         if (this.level().isClientSide()) {
@@ -479,10 +532,6 @@ public class CrowEntity extends TamableAnimal implements GeoAnimatable {
         float satiation = this.getSatiation();
         if (satiation > 0.0f) {
             this.setSatiation(satiation - CrowBehaviorPolicy.SATIATION_DECAY_PER_TICK);
-        }
-        if (this.isInSittingPose()) {
-            this.setDeltaMovement(this.getDeltaMovement().multiply(0.5, 0.25, 0.5));
-            return;
         }
     }
 
