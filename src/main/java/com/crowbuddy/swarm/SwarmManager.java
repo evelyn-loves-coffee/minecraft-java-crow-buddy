@@ -177,11 +177,6 @@ public class SwarmManager {
         triggerRetaliation(crow, attacker);
     }
 
-    public void onPlayerAttackCrow(Player player, CrowEntity crow) {
-        // AFTER_DAMAGE is the authoritative path. Counting here would count one
-        // player hit twice because AttackEntityCallback fires before damage.
-    }
-
     public void onPlayerAttackTarget(Player player, Entity target) {
         if (target instanceof LivingEntity livingTarget) {
             if (isHostileMob(livingTarget)) {
@@ -195,10 +190,6 @@ public class SwarmManager {
                 }
             }
         }
-    }
-
-    public void onNonCrowDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
-        return;
     }
 
     private void triggerSwarm(CrowEntity source, LivingEntity target) {

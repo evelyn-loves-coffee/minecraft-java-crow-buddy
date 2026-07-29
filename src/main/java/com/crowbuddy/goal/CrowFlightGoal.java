@@ -34,7 +34,7 @@ public final class CrowFlightGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (this.crow.isInSittingPose()
+        if (this.crow.isInSittingPose() || this.crow.isOrderedToSit()
                 || this.crow.isInLove() || this.crow.isInMatingState()) return false;
         if (this.crow.level().getGameTime() < this.nextFlightTick) return false;
         this.followTarget = distantOwner();
@@ -48,7 +48,7 @@ public final class CrowFlightGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return this.crow.isAirborne() && !this.crow.isInSittingPose()
+        return this.crow.isAirborne() && !this.crow.isInSittingPose() && !this.crow.isOrderedToSit()
             && !this.crow.isInLove() && !this.crow.isInMatingState();
     }
 

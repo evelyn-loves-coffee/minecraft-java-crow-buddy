@@ -204,8 +204,10 @@ public class ScavengeGoal extends Goal {
         if (candidates.isEmpty()) {
             return null;
         }
-        ItemEntity bestBeacon = null, bestPiglin = null, bestTrim = null;
-        double bestBeaconDist = Double.MAX_VALUE, bestPiglinDist = Double.MAX_VALUE, bestTrimDist = Double.MAX_VALUE;
+
+        ItemEntity bestBeacon = null, bestPiglin = null, bestTrim = null, nearest = null;
+        double bestBeaconDist = Double.MAX_VALUE, bestPiglinDist = Double.MAX_VALUE,
+               bestTrimDist = Double.MAX_VALUE, nearestDist = SEARCH_RADIUS_SQ;
 
         for (ItemEntity itemEntity : candidates) {
             if (!itemEntity.isAlive() || claimedItemIds.contains(itemEntity.getId())) {
@@ -215,6 +217,7 @@ public class ScavengeGoal extends Goal {
             if (distSq > SEARCH_RADIUS_SQ) {
                 continue;
             }
+
             ItemStack stack = itemEntity.getItem();
             if (stack.is(BEACON_PAYMENT) && distSq < bestBeaconDist) {
                 bestBeacon = itemEntity;
@@ -228,28 +231,15 @@ public class ScavengeGoal extends Goal {
                 bestTrim = itemEntity;
                 bestTrimDist = distSq;
             }
-        }
-        if (bestBeacon != null) {
-            return bestBeacon;
-        }
-        if (bestPiglin != null) {
-            return bestPiglin;
-        }
-        if (bestTrim != null) {
-            return bestTrim;
-        }
-        ItemEntity nearest = null;
-        double nearestDist = SEARCH_RADIUS_SQ;
-        for (ItemEntity itemEntity : candidates) {
-            if (!itemEntity.isAlive() || claimedItemIds.contains(itemEntity.getId())) {
-                continue;
-            }
-            double distSq = this.crow.distanceToSqr(itemEntity);
             if (distSq < nearestDist) {
                 nearest = itemEntity;
                 nearestDist = distSq;
             }
         }
+
+        if (bestBeacon != null) return bestBeacon;
+        if (bestPiglin != null) return bestPiglin;
+        if (bestTrim != null) return bestTrim;
         return nearest;
     }
 

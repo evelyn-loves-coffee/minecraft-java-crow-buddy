@@ -16,9 +16,9 @@ public final class HigherGroundStrollGoal extends Goal {
     private final double speed;
     private Vec3 target;
     public HigherGroundStrollGoal(CrowEntity crow, double speed) { this.crow = crow; this.speed = speed; setFlags(EnumSet.of(Flag.MOVE)); }
-    @Override public boolean canUse() { if (crow.isInSittingPose() || crow.getRandom().nextInt(INTERVAL) != 0) return false; target = chooseTarget(); return target != null; }
+    @Override public boolean canUse() { if (crow.isInSittingPose() || crow.isOrderedToSit() || crow.getRandom().nextInt(INTERVAL) != 0) return false; target = chooseTarget(); return target != null; }
     @Override public void start() { crow.getCrowNavigator().navigateTo(crow, target, speed); }
-    @Override public boolean canContinueToUse() { return crow.getCrowNavigator().hasPath() && !crow.getCrowNavigator().hasReachedTarget(crow, 1.0); }
+    @Override public boolean canContinueToUse() { return !crow.isInSittingPose() && !crow.isOrderedToSit() && crow.getCrowNavigator().hasPath() && !crow.getCrowNavigator().hasReachedTarget(crow, 1.0); }
     @Override public void stop() { crow.getCrowNavigator().clear(crow); target = null; }
     private Vec3 chooseTarget() {
         Vec3 best = null; double bestScore = Double.NEGATIVE_INFINITY;

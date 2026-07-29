@@ -34,6 +34,10 @@ public final class CrowNavigator {
     }
 
     private boolean setTarget(CrowEntity crow, Vec3 destination, double speed) {
+        if (crow.isInSittingPose() || crow.isOrderedToSit()) {
+            clear(crow);
+            return false;
+        }
         this.target = destination;
         this.speed = speed;
         double dx = destination.x - crow.getX(), dz = destination.z - crow.getZ();
@@ -59,6 +63,10 @@ public final class CrowNavigator {
 
     public void tick(CrowEntity crow) {
         if (target == null) return;
+        if (crow.isInSittingPose() || crow.isOrderedToSit()) {
+            clear(crow);
+            return;
+        }
         if (trackedTarget != null) {
             if (!trackedTarget.isAlive()) { clear(crow); return; }
             Vec3 moved = trackedTarget.position().add(0.0, trackedTarget.getBbHeight() * 0.5, 0.0);

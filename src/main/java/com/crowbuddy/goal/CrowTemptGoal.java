@@ -37,7 +37,10 @@ public final class CrowTemptGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return isTempting(player) && crow.distanceToSqr(player) <= RANGE * RANGE;
+        return !crow.isInSittingPose()
+            && !crow.isOrderedToSit()
+            && isTempting(player)
+            && crow.distanceToSqr(player) <= RANGE * RANGE;
     }
 
     @Override
