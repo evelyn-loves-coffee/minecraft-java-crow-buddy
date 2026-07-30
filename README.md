@@ -14,6 +14,23 @@ Crows are unique, tameable entities that spawn in biomes mirroring real-life hab
 
 The custom sound events are wired to gameplay, but the checked-in `.ogg` files are placeholders pending final audio selection. Planned source links are retained in [`docs/SOUNDS.md`](docs/SOUNDS.md).
 
+### Sound Attributions
+
+All sounds are sourced from [Freesound.org](https://freesound.org). Attributions below follow Freesound's required format.
+
+**CC BY 4.0**
+
+- "Carrion Crow CLEAN 732AM 210228_0261.wav" by [klankbeeld](https://freesound.org/people/klankbeeld/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). ([source](https://freesound.org/s/626378/))
+- "Crow.WAV" by [inchadney](https://freesound.org/people/inchadney/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). ([source](https://freesound.org/s/159426/))
+- "Hatched.wav" by [pcaeldries](https://freesound.org/people/pcaeldries/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). ([source](https://freesound.org/s/75167/))
+- "Crow_001.mp3" by [ShadowSilhouette](https://freesound.org/people/ShadowSilhouette/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). ([source](https://freesound.org/s/486534/))
+
+**CC0 (Public Domain)**
+
+- "Crows flying and cawing over their nests" by [etienne.leplumey](https://freesound.org/people/etienne.leplumey/) is licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). ([source](https://freesound.org/s/534322/))
+- "Small Bird Flying.wav" by [XfiXy8](https://freesound.org/people/XfiXy8/) is licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). ([source](https://freesound.org/s/467294/))
+- "egg hatching OWI.wav" by [nayahnaidoo](https://freesound.org/people/nayahnaidoo/) is licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). ([source](https://freesound.org/s/656049/))
+
 AI usage disclosure:
 * LLMs were not involved in defining mod intent, nor planned behaviors.
 * Majority of project structure and implementation was created using open-weights agentic models running locally on llama.cpp.
