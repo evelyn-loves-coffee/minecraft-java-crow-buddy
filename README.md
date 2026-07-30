@@ -3,7 +3,7 @@
 A vanilla-plus Fabric mod for Minecraft 26.2+ that introduces the Crow entity. 
 
 ### Overview
-Crows are unique, tameable entities that spawn in biomes mirroring real-life habitats. They possess distinct behaviors:
+Crows are unique, tameable entities that possess distinct behaviors:
 
 * **Tamability & Diet:** Crows can be healed with various seeds, but only specialized **Black oil sunflower seeds** (a bonus drop from broken sunflowers) can tame them. They respond negatively to chocolate, which causes poisoning.
 * **Swarm Intelligence:** Crows exhibit a "swarm" mechanic. Attacking a crow triggers nearby crows to join the fray. Tamed crows will defend their player with similar aggression to wolves.
@@ -32,6 +32,6 @@ All sounds are sourced from [Freesound.org](https://freesound.org). Attributions
 - "egg hatching OWI.wav" by [nayahnaidoo](https://freesound.org/people/nayahnaidoo/) is licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). ([source](https://freesound.org/s/656049/))
 
 AI usage disclosure:
-* LLMs were not involved in defining mod intent, nor planned behaviors.
+* LLMs were used heavily in development. However, LLMs were not involved in defining mod intent, behavior planning, or in generating ideas.
 * Majority of project structure and implementation was created using open-weights agentic models running locally on llama.cpp.
 * Creation of textures and behavior implementation created using closed-weights agentic models.
