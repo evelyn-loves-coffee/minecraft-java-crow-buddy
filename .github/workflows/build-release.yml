@@ -28,8 +28,12 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Upload JAR to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/libs/*.jar
-          generate_release_notes: true
+      - name: Create Release
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            build/libs/*.jar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
