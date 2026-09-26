@@ -1,7 +1,7 @@
 package com.crowbuddy.event;
 
-import com.crowbuddy.CrowBuddy;
 import com.crowbuddy.entity.CrowEntity;
+import com.crowbuddy.goal.ScavengeRegistry;
 import com.crowbuddy.item.ModItems;
 import com.crowbuddy.swarm.SwarmManager;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -33,6 +33,16 @@ public class CrowEventHub {
                 );
             }
         });
+        ServerLivingEntityEvents.AFTER_DEATH.register(CrowEventHub::onEntityDeath);
+    }
+
+    static void onEntityDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
+        if (!entity.level().isClientSide() && entity instanceof CrowEntity crow) {
+            // Goals stop ticking once the entity is removed, so their stop() cleanup
+            // never runs; release per-crow state here instead.
+            SwarmManager.get(crow.level()).clearCrowState(crow.getId());
+            ScavengeRegistry.get(crow.level()).releaseAll(crow.getId());
+        }
     }
 
     static void onEntityDamaged(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source, float amount, float knockback, boolean isDirect) {
@@ -54,9 +64,5 @@ public class CrowEventHub {
 
     static void handlePlayerAttackTarget(Player player, Entity target) {
         SwarmManager.get(player.level()).onPlayerAttackTarget(player, target);
-    }
-
-    private static void log(String msg) {
-        CrowBuddy.LOGGER.debug("[CrowEventHub] " + msg);
     }
 }

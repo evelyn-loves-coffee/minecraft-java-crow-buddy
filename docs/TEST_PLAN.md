@@ -6,10 +6,10 @@ This document outlines the verification steps required to ensure compliance with
 * [x] **Entity Behavior:** Scavenging, neutral sit/stand target clearing, and flight mechanics verified.
 * [x] **Tamability:** Seed usage, healing, and poisoning logic verified.
 * [x] **Swarm System:** Distress trigger, radius check, and networking sync verified.
-* [x] **Spawning:** Crow spawning in non-ocean, non-river, non-desert, non-underground overworld biomes (weight 5, groups 1-2) verified; no generated nests.
+* [x] **Spawning:** Crow spawning in overworld biomes except oceans, rivers, and badlands (weight 5, groups 1-2) verified; no generated nests.
 * [x] **Nest Building:** One parent builds on exposed `#minecraft:leaves` within 48 blocks; invalid or enclosed sites are rejected.
 * [x] **Nest Lifecycle:** Incubation, one baby spawn, hatch removal, leaf-support removal, and no item drops verified.
-* [x] **Trampling:** Turtle-egg probabilities, sneaking/crow immunity, and `mobGriefing` behavior verified.
+* [x] **Trampling:** Nest-trampling probabilities (1/100 on step, 1/3 on fall), sneaking/crow immunity, and `mobGriefing` behavior verified.
 
 ## 2. Technical Standards (PAWS)
 * **Performance:**
@@ -26,6 +26,6 @@ This document outlines the verification steps required to ensure compliance with
     * [x] Modded leaves participate through `#minecraft:leaves` verified.
 
 ## 3. Regression & Build
-* [x] Full `./gradlew clean build --warning-mode all` (38 tests, no failures; verified 2026-07-26).
+* [x] Full `./gradlew clean build --warning-mode all` (44 tests, no failures; verified 2026-09-26).
 * [x] Java compilation with deprecation linting (verified 2026-07-26; two upstream Fabric renderer-registry warnings remain).
 * [x] Required `.geo.json`, `.animation.json`, `.png`, and `.ogg` resources are present; custom `.ogg` files remain placeholders pending final audio selection.

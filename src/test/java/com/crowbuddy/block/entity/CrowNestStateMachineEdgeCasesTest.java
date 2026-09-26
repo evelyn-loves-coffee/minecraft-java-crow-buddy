@@ -44,6 +44,27 @@ class CrowNestStateMachineEdgeCasesTest {
     }
 
     @Test
+    void hatchingWithZeroTicksCompletesInsteadOfStalling() {
+        CrowNestStateMachine stateMachine = new CrowNestStateMachine();
+        stateMachine.setStage(CrowNestStateMachine.STAGE_HATCHING);
+        stateMachine.setTicksRemaining(0);
+        stateMachine.tick();
+        assertEquals(CrowNestStateMachine.STAGE_IDLE, stateMachine.getStage());
+        assertEquals(CrowNestStateMachine.SideEffectType.HATCH_COMPLETE,
+            stateMachine.getLastSideEffect());
+    }
+
+    @Test
+    void eggsWithZeroTicksAdvanceToHatching() {
+        CrowNestStateMachine stateMachine = new CrowNestStateMachine();
+        stateMachine.setStage(CrowNestStateMachine.STAGE_EGGS);
+        stateMachine.setTicksRemaining(0);
+        stateMachine.tick();
+        assertEquals(CrowNestStateMachine.STAGE_HATCHING, stateMachine.getStage());
+        assertEquals(CrowNestStateMachine.HATCHING_TICKS, stateMachine.getTicksRemaining());
+    }
+
+    @Test
     void activeConstantsRemainStableForSavedData() {
         assertEquals(0, CrowNestStateMachine.STAGE_IDLE);
         assertEquals(1, CrowNestStateMachine.STAGE_EGGS);

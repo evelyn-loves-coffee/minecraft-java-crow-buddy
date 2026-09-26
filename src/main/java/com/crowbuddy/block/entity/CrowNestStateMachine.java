@@ -33,11 +33,17 @@ public class CrowNestStateMachine {
     public void tick() {
         if (this.stage == STAGE_IDLE) return;
 
-        if (this.ticksRemaining > 0) {
-            this.ticksRemaining--;
-            if (this.ticksRemaining <= 0) {
-                advance();
-            }
+        if (this.ticksRemaining <= 0) {
+            // Defensive: an active stage with no ticks left (e.g. loaded from a
+            // corrupt/migrated save) would otherwise stall forever. Treat the
+            // stage as having just reached its end so the nest completes.
+            this.advance();
+            return;
+        }
+
+        this.ticksRemaining--;
+        if (this.ticksRemaining <= 0) {
+            this.advance();
         }
     }
 
