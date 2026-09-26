@@ -2,8 +2,8 @@
 
 ## 1. Crow Spawning
 
-- Fabric `BiomeModifications` adds crows to overworld creature spawns in all non-ocean, non-river biomes.
-- Spawn weight is 1 with groups of one to two crows.
+- Fabric `BiomeModifications` adds crows to overworld creature spawns in all overworld biomes except oceans, rivers, and badlands.
+- Spawn weight is 5 with groups of one to two crows.
 - Crow nests are excluded from chunk generation.
 
 ## 2. Breeding Nest Construction

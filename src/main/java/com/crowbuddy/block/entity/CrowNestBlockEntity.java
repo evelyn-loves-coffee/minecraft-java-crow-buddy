@@ -65,7 +65,9 @@ public class CrowNestBlockEntity extends BlockEntity {
         if (be.stateMachine.getStage() == CrowNestStateMachine.STAGE_IDLE) {
             return;
         }
-        if (!level.isClientSide() && be.stateMachine.getTicksRemaining() > 0) {
+        if (!level.isClientSide()) {
+            // The state machine also handles ticksRemaining <= 0 defensively
+            // (corrupt/migrated saves must not stall the nest).
             be.stateMachine.tick();
             if (be.stateMachine.isSideEffectTriggered()) {
                 be.advanceStage(level, pos);

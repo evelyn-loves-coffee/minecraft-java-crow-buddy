@@ -11,9 +11,9 @@ public class ModNetworking {
         PayloadTypeRegistry.clientboundPlay().register(ScavengePayload.TYPE, ScavengePayload.CODEC);
     }
 
-    public static void sendDistress(ServerPlayer player, int entityId, net.minecraft.core.BlockPos targetPos, int sourceId) {
+    public static void sendDistress(ServerPlayer player, int sourceId) {
         if (ServerPlayNetworking.canSend(player, DistressPayload.TYPE)) {
-            ServerPlayNetworking.send(player, new DistressPayload(entityId, targetPos, sourceId));
+            ServerPlayNetworking.send(player, new DistressPayload(sourceId));
         }
     }
 

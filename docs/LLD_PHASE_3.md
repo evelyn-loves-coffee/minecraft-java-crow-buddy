@@ -30,12 +30,12 @@ Runtime state shared with clients was tracked through `SynchedEntityData`. Persi
 #### Swarm Intelligence (The "Distress" System)
 - **Trigger (Untamed):** Attacking an untamed crow triggered a 32-block-radius distress event with the source and up to five nearby responders.
 - **Trigger (Tamed):**
-    - **Single Hit:** A single hit produced an approximately two-second retaliation engagement.
+    - **Single Hit:** A single hit produced an approximately two-second retaliation engagement (implemented: `SwarmManager.triggerRetaliation` engages the crow's `SwarmDistressGoal` in `Mode.RETALIATION`, which caps the engagement at the 40-tick retaliation window instead of the 200-tick swarm window).
     - **Escalation:** Three hits within a 30-second sliding window triggered full swarm escalation.
     - **Defending Player:** A swarm response was triggered only when the owner attacked a hostile mob.
 - **Swarm Rules:**
     - **Cap:** The response was capped at six crows, selected as the source plus five nearest crows through squared-distance sorting.
-    - **Networking:** `DistressPayload` broadcast the entity ID, position, and source from server to client.
+    - **Networking:** `DistressPayload` broadcasts the crow's source ID from server to client; the distress sound itself is played server-side (positional), so the client only renders particles.
     - **Cooldown:** Each crow received a 300-tick cooldown between swarm participations.
     - **Targeting:** Player targets used a four-second sliding window, and each swarm engagement was capped at 200 ticks.
     - **Navigation:** Combat used standard ground-based `PathNavigation`.
@@ -47,7 +47,7 @@ Runtime state shared with clients was tracked through `SynchedEntityData`. Persi
 
 ### 1.4. Networking
 - **Payloads:**
-    - `DistressPayload` broadcast distress events with entity ID, block position, and source ID.
+    - `DistressPayload` broadcast distress events with the crow's source ID (single field; the sound is server-side, the client renders particles only).
     - `ScavengePayload` synchronized item acquisition and drops with crow ID and item stack.
 - **Pattern:** The implementation used the MC 26.2 `CustomPacketPayload` and `PayloadTypeRegistry` APIs.
 

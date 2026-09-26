@@ -46,13 +46,11 @@ public final class AStarPathfinder implements FlightNavigator {
         Node first = new Node(startPos, 0.0, heuristic(startPos, targetPos), null);
         open.add(first);
         best.put(startPos, 0.0);
-        Node closest = first;
         int expanded = 0;
 
         while (!open.isEmpty() && expanded++ < maxSearchNodes) {
             Node current = open.poll();
             if (!closed.add(current.pos)) continue;
-            if (heuristic(current.pos, targetPos) < heuristic(closest.pos, targetPos)) closest = current;
             if (segmentClear(level, current.pos, targetPos)) {
                 return smooth(level, reconstruct(current, target));
             }
@@ -109,14 +107,6 @@ public final class AStarPathfinder implements FlightNavigator {
         }
         return result;
     }
-
-    @Override
-    public boolean isPathValid(Level level, List<Vec3> path) {
-        for (Vec3 waypoint : path) if (!terrain.isPassable(level, BlockPos.containing(waypoint))) return false;
-        return !path.isEmpty();
-    }
-
-    @Override public int getMaxSearchNodes() { return maxSearchNodes; }
 
     private static double heuristic(BlockPos a, BlockPos b) {
         double dx = a.getX() - b.getX(), dy = (a.getY() - b.getY()) * VERTICAL_COST_MULTIPLIER, dz = a.getZ() - b.getZ();

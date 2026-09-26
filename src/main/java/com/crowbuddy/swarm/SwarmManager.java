@@ -43,15 +43,6 @@ public class SwarmManager {
         INSTANCE_BY_DIM.remove(level.dimension());
     }
 
-    public void checkCooldown(int crowId, long currentTick) {
-        Long cd = cooldowns.get(crowId);
-        if (cd != null && (currentTick - cd) < COOLDOWN_TICKS) {
-            cooldowns.put(crowId, cd);
-            return;
-        }
-        cooldowns.remove(crowId);
-    }
-
     public boolean isInCooldown(int crowId, long currentTick) {
         Long cd = cooldowns.get(crowId);
         return cd != null && (currentTick - cd) < COOLDOWN_TICKS;
@@ -65,13 +56,6 @@ public class SwarmManager {
         cooldowns.remove(crowId);
         retaliationTimers.remove(crowId);
         escalationHistory.remove(crowId);
-    }
-
-    public void checkRetaliation(int crowId, long currentTick) {
-        Long rt = retaliationTimers.get(crowId);
-        if (rt != null && (currentTick - rt) >= RETALIATION_TICKS) {
-            retaliationTimers.remove(crowId);
-        }
     }
 
     public boolean isInRetaliation(int crowId, long currentTick) {
@@ -110,9 +94,14 @@ public class SwarmManager {
     }
 
     public void activateSwarmMode(CrowEntity crow, LivingEntity target) {
+        activateSwarmMode(crow, target, com.crowbuddy.goal.SwarmDistressGoal.Mode.SWARM);
+    }
+
+    public void activateSwarmMode(CrowEntity crow, LivingEntity target, com.crowbuddy.goal.SwarmDistressGoal.Mode mode) {
         if (crow.isBaby() || crow.isInSittingPose() || crow.getSwarmGoal() == null) {
             return;
         }
+        crow.getSwarmGoal().setMode(mode);
         crow.getSwarmGoal().setTarget(target);
         if (crow.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             double pitch = crow.getRandom().nextFloat() * 0.3f + 0.85f;
@@ -127,12 +116,7 @@ public class SwarmManager {
             );
 
             for (net.minecraft.server.level.ServerPlayer player : serverLevel.players()) {
-                com.crowbuddy.networking.ModNetworking.sendDistress(
-                    player,
-                    crow.getId(),
-                    target.blockPosition(),
-                    crow.getId()
-                );
+                com.crowbuddy.networking.ModNetworking.sendDistress(player, crow.getId());
             }
         }
     }
@@ -226,7 +210,10 @@ public class SwarmManager {
         Level level = crow.level();
         long currentTick = level.getGameTime();
         setRetaliationCooldown(crow.getId(), currentTick);
-        activateSwarmMode(crow, attacker);
+        // Mode.RETALIATION caps the engagement at the 40-tick retaliation window
+        // ("single hit => ~2 second engagement" per LLD Phase 3) instead of the
+        // 200-tick swarm engagement.
+        activateSwarmMode(crow, attacker, com.crowbuddy.goal.SwarmDistressGoal.Mode.RETALIATION);
         CrowBuddy.LOGGER.info(
             "Retaliation: crow={} attacker={}",
             crow.getId(), attacker.getName().getString()

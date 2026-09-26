@@ -38,7 +38,8 @@ The client entry point performed client-only setup:
 
 - The crow nest was retained as a registered block and block entity because breeding AI created it directly; no player-obtainable nest item was registered.
 - Registered items were black oil sunflower seeds, black feathers, and the crow spawn egg.
-- Black feathers participated in the `crowbuddy:feathers` item tag and compatibility recipes.
+- Black feathers participated in the `crowbuddy:feathers` item tag (contents: `minecraft:feather`, `crowbuddy:black_feather`).
+- The mod **overrides three vanilla recipes** in `data/minecraft/recipe/` to accept the `crowbuddy:feathers` tag in place of the vanilla feather ingredient: `arrow` (flint + stick + feathers, result 4), `brush` (copper ingot + stick + feathers), and `writable_book` (book + ink sac + feathers). Because the tag still includes `minecraft:feather`, vanilla crafting is not broken; black feathers become a drop-in alternative (brush and writable book gain a feather requirement that vanilla did not have).
 - Seven crow sound events were registered from one ordered collection. Their JSON definitions and placeholder `.ogg` resources remained data-driven.
 - `DistressPayload` and `ScavengePayload` were registered as clientbound play payloads with typed codecs. Sends were guarded by `ServerPlayNetworking.canSend`.
 

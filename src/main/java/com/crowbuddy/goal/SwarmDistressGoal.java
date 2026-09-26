@@ -29,7 +29,7 @@ public class SwarmDistressGoal extends Goal {
 
     private final CrowEntity crow;
     private final SwarmManager swarmManager;
-    private final Mode mode;
+    private Mode mode;
 
     private LivingEntity target;
     private long tickTimer;
@@ -48,6 +48,10 @@ public class SwarmDistressGoal extends Goal {
     }
 
     // Public setters for external state updates
+    public void setMode(Mode mode) {
+        this.mode = mode;
+    }
+
     public void setTarget(LivingEntity target) {
         this.target = target;
         if (target instanceof Player) {
