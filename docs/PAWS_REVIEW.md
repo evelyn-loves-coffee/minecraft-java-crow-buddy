@@ -222,3 +222,30 @@ Re-verified every finding against source, deobfuscated 26.2 bytecode, and fresh 
 
 ### 4. Intent adherence
 The mod's stated intent (tameable crow with breeding, scavenging, swarm distress, and a feather economy) is architecturally coherent and the navigation/breeding/nest subsystems are implemented correctly in 26.2. The feather economy's viability depends on the critical attribute-registration fix; until then the intent is unfulfilled. All PAWS categories are addressed above.
+
+---
+
+## Post-review: migration to Minecraft 26.3 (v1.1.0, 2026-09-26)
+
+All historical "26.2" references above describe the state at review time and are preserved as-is. After the fixes above were applied (commit `cccbc73`, unreleased), the project was migrated to the stable Minecraft 26.3 release (2026-09-15) and released together as mod v1.1.0:
+
+| Component | Before | After |
+|---|---|---|
+| Minecraft | 26.2 | 26.3 |
+| Fabric Loader | 0.19.3 | 0.19.5 |
+| Fabric Loom | 1.17-SNAPSHOT | 1.18.2 |
+| Fabric API | 0.155.2+26.2 | 0.161.0+26.3 |
+| GeckoLib | `L6bn4TS8` (5.5.3) | `kSxHvs99` (5.5.7) |
+| Gradle wrapper | 9.6.1 | 9.8.0 |
+
+26.3 API breaks found and fixed at compile time (44/44 tests pass, BUILD SUCCESSFUL):
+
+1. **Loot number providers reworked** (`CrowEventHub`): `UniformGenerator` moved to `net.minecraft.world.level.storage.loot.providers.number.ints` and is now a record taking `Holder<ContextIntProvider>` bounds (no `between(float, float)`); `SetItemCountFunction` moved to `...loot.functions` and `setCount` takes `Holder<ContextIntProvider>`. The sunflower seed pool now uses `setCount(Holder.direct(new UniformGenerator(Holder.direct(new ConstantValue(2)), Holder.direct(new ConstantValue(6)))))` — same 2–6 uniform distribution.
+2. **`PoseStack` pose API** (`CrowRenderer`, `CrowCarriedItemLayer`): `mulPose(Quaternionf)` no longer exists; replaced with `rotate(Quaternionf)` (`rotate` accepts the JOML `Quaternionfc` supertype).
+
+Environment notes verified during migration:
+- **Yarn mappings end at 1.21.11+build.6** (zero 26.x builds on Fabric meta/maven). Mojang's 26.x client jars ship pre-named (e.g. `net.minecraft.resources.Identifier`, `BuiltInRegistries`), so Loom 1.18 needs no mappings dependency; the project's code uses Mojang's 2026 official names, not Yarn.
+- 26.3 renderer is renderpearl-based (`PoseStack`, `SubmitNodeCollector`, `CameraRenderState`); the client renderer compiled with only the two `mulPose` fixes above.
+- GeckoLib 5.5.7 (26.3) is source/binary compatible with the existing `GeoEntityRenderer`/`BlockAndItemGeoLayer` usage — no client-side changes needed beyond the two renderer fixes.
+
+Runtime verification in a 26.3 instance is still pending (the local test instance is still on 26.2; the modpack must be migrated before in-game sign-off).

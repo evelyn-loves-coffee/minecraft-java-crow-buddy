@@ -1,6 +1,6 @@
 # Crow Buddy
 
-A vanilla-plus Fabric mod for Minecraft 26.2+ that introduces the Crow entity. 
+A vanilla-plus Fabric mod for Minecraft 26.3+ that introduces the Crow entity. 
 
 ### Overview
 Crows are unique, tameable entities that possess distinct behaviors:

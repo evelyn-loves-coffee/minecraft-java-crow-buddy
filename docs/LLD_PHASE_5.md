@@ -45,7 +45,7 @@ The phase required a clean build with deprecation linting and retained manual in
 Centralize goal and pathfinding systems in the crow-buddy Minecraft mod, then implement intelligent 3D flight pathfinding.
 
 ### Status
-Completed. Verified against Minecraft 26.2 mappings. Build passes with 38 tests, zero failures.
+Completed. Verified against Minecraft 26.3 mappings. Build passes with 44 tests, zero failures.
 
 ### Architecture
 

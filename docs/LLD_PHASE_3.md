@@ -3,7 +3,7 @@
 ## 1. Entity Implementation (Core Mechanics)
 
 ### 1.1. Entity Data and Persistence
-Runtime state shared with clients was tracked through `SynchedEntityData`. Persistent crow data was written and loaded separately through the MC 26.2 `ValueOutput`/`ValueInput` hooks.
+Runtime state shared with clients was tracked through `SynchedEntityData`. Persistent crow data was written and loaded separately through the MC 26.3 `ValueOutput`/`ValueInput` hooks.
 - `SITTING` was inherited from `TamableAnimal` through `setOrderedToSit()` and `isOrderedToSit()` and suppressed all behaviors.
 - `STATE` mapped an integer to the `CrowState` values `IDLE`, `SEARCHING`, `CARRYING`, `COMBAT`, `DISTRESS`, `SWARM`, and `NESTING`.
 - `CARRIED_ITEM` tracked the `ItemStack` held in the crow's mouth during scavenging.
@@ -49,7 +49,7 @@ Runtime state shared with clients was tracked through `SynchedEntityData`. Persi
 - **Payloads:**
     - `DistressPayload` broadcast distress events with the crow's source ID (single field; the sound is server-side, the client renders particles only).
     - `ScavengePayload` synchronized item acquisition and drops with crow ID and item stack.
-- **Pattern:** The implementation used the MC 26.2 `CustomPacketPayload` and `PayloadTypeRegistry` APIs.
+- **Pattern:** The implementation used the MC 26.3 `CustomPacketPayload` and `PayloadTypeRegistry` APIs.
 
 ## 2. PAWS Verification
 
