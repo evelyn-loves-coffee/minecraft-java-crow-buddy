@@ -3,6 +3,8 @@
 ## 1. Session Initialization
 * **Sync Check:** Record when the last time git fetch was run in ".git-fetch-timestamp" in ISO 8601 format. Perform `git fetch` if more than a day has passed, or if user requests.
 * **Auto-Rebase:** If a desync is detected from a fetch, automatically execute `git rebase`. Stop and request user intervention **only** if merge conflicts occur.
+* **Branching discipline:** Make all changes on a dedicated feature branch (e.g. `bump-version`, `fix-crow-render`) created from the current default branch. **Never commit directly to `main`/`master` or any protected branch.** Push the branch and open a Pull Request for review.
+* **Tag after merge:** Create release tags only *after* the commit lands on the default branch, and ensure a tag matches the in-repo version (e.g. `mod_version` in `gradle.properties`) at the tagged commit, as required by the release workflow.
 
 ## 2. Operational Phases
 Apply the **PAWS** standard during these phases. All phases must maintain a "Golden Thread" of evidence from discovery to implementation.
