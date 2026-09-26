@@ -11,12 +11,16 @@ Version coordinates were centralized in `gradle.properties`:
 
 | Component | Version |
 |---|---|
-| Minecraft | 26.2 |
-| Fabric Loader | 0.19.3 |
-| Fabric Loom | 1.17-SNAPSHOT |
-| Fabric API | 0.155.2+26.2 |
-| GeckoLib | Modrinth artifact `L6bn4TS8` |
-| Crow Buddy | 1.0.0 |
+| Minecraft | 26.3 |
+| Fabric Loader | 0.19.5 |
+| Fabric Loom | 1.18.2 |
+| Fabric API | 0.161.0+26.3 |
+| GeckoLib | Modrinth artifact `kSxHvs99` (5.5.7) |
+| Crow Buddy | 1.1.0 |
+
+> Scaffolding initially targeted Minecraft 26.2 (loader 0.19.3, Loom 1.17-SNAPSHOT,
+> Fabric API 0.155.2+26.2, GeckoLib `L6bn4TS8`/5.5.3, Gradle 9.6.1). The stack was
+> migrated to 26.3 on 2026-09-26 (mod v1.1.0); Gradle wrapper is 9.8.0.
 
 ## 2. Dependency and Repository Layout
 

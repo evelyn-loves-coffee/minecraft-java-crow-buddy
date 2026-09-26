@@ -64,7 +64,7 @@ public class CrowRenderer extends GeoEntityRenderer<CrowEntity, LivingEntityRend
 
         poseStack.pushPose();
         poseStack.translate(0.0, renderState.boundingBoxHeight + 0.65, 0.0);
-        poseStack.mulPose(cameraState.orientation);
+        poseStack.rotate(cameraState.orientation);
         float closeScale = (float) Math.max(0.55, Math.min(1.0,
             Math.sqrt(renderState.distanceToCameraSq) / 3.0));
         poseStack.scale(0.45f * closeScale, 0.45f * closeScale, 0.45f * closeScale);

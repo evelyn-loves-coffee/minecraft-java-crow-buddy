@@ -66,7 +66,7 @@ final class CrowCarriedItemLayer
         // Item ground models stand vertically in this bone space by default.
         // Rotate their vertical axis onto the beak's forward axis so the item
         // projects out of the mouth instead of rising above it.
-        poseStack.mulPose(new Quaternionf().rotationX((float) (Math.PI * 0.5)));
+        poseStack.rotate(new Quaternionf().rotationX((float) (Math.PI * 0.5)));
         poseStack.scale(0.7f, 0.7f, 0.7f);
         super.submitItemStackRender(
             poseStack, bone, itemState, displayContext, renderState, collector, packedLight);
